@@ -1,0 +1,20 @@
+LIFE
+	 PLANT
+	 	PHYTOTOMY
+	 AMIMAL
+	 	ANATOMY
+	 		BLOOD
+	 		DNA
+	 HUMAN
+	 	ANATOMY
+	 		BLOOD
+	 		DNA
+	 		CELL
+	 	MEDICALRECORD
+	 		PSYCOLOGY
+	 			MOOD
+	 		 	PERSONALITY
+	 	SELFDIAGNOSIS				# (Tags only allowed to be set by owner of this data)
+	 		PSYCOLOGY
+	 			MOOD
+	 		 	PERSONALITY

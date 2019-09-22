@@ -1,0 +1,53 @@
+TAGs 
+
+========================================================================================
+Description
+========================================================================================
+Tags can be set on any data existing on any life sample.
+Tags can automatically be set by tools developed by the dnaresearch project (e.g. analyzing dna sequencing)
+Some specific tags can manually be set by the user who owns the data (humans) or by researchers who observes animals/plants.
+In this first draft an attempt is made to structure the tags so:
+- It's well organized
+- Enables powerful searches (e.g. filter out data related only to humans or to any kind of life)
+
+========================================================================================
+Format
+========================================================================================
+LIFE-[CATHEGORY]*[-VALUE]*
+
+========================================================================================
+TAG Examples
+========================================================================================
+LIFE-HUMAN-ANATOMY-HAIR-COLOR-Value("Red");
+
+========================================================================================
+Filer examples
+========================================================================================
+Exact match: 
+	Example 1) Match with value
+	Filter: LIFE-HUMAN-ANATOMY-COLOR-Value("Red");
+	Match example: LIFE-HUMAN-ANATOMY-COLOR: Red
+
+Wildcard search: 
+
+	Example 1) Wildcard without value
+	Filter: *-MOOD-DEPRESSION-*
+	Match example:	LIFE-HUMAN-MEDICALRECORD-PSYCOLOGY-MOOD-DEPRESSION
+					LIFE-HUMAN-SELFDIAGNOSIS-PSYCOLOGY-MOOD-DEPRESSION
+
+	Example 2) Wildcard without value
+	Filter: MEDICALRECORD-*-DEPRESSION-*
+	Match example:	LIFE-HUMAN-MEDICALRECORD-PSYCOLOGY-MOOD-DEPRESSION
+
+	Example 3: Wildcard without value
+	Filter: *-HAIR-COLOR-*
+	Match example: LIFE-AMIMAL-ANATOMY-HAIR-COLOR: Red
+				   LIFE-HUMAN-ANATOMY-HAIR-COLOR: White
+
+========================================================================================
+Governance
+========================================================================================
+Only tags defined in the repo is allowed. New tags must be reviewed and approved before added to the list
+Store tags under tags/validtaglist.txt for the moment. 
+It should be investigated how we easiest can read this and present the tags in the portal GUI.
+Maybe there is another format more suitable.
