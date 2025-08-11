@@ -1,9 +1,8 @@
 """Theory management for listing, filtering, and sorting"""
 
-from datetime import datetime
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class TheoryScope(Enum):
@@ -40,11 +39,11 @@ class TheoryMetadata:
 
 class TheoryManager:
     """Manage theory listing, filtering, and sorting"""
-    
+
     def __init__(self):
         # Mock theory database - in production this would be a real database
         self.theories = self._load_mock_theories()
-    
+
     def _load_mock_theories(self) -> List[TheoryMetadata]:
         """Load mock theory data"""
         return [
@@ -61,7 +60,7 @@ class TheoryManager:
                 posterior=0.75,
                 support_class="strong",
                 tags=["synaptic", "de-novo", "validated"],
-                has_comments=True
+                has_comments=True,
             ),
             TheoryMetadata(
                 id="autism-theory-2",
@@ -76,7 +75,7 @@ class TheoryManager:
                 posterior=0.62,
                 support_class="moderate",
                 tags=["network", "pathway", "synaptic"],
-                has_comments=False
+                has_comments=False,
             ),
             TheoryMetadata(
                 id="cancer-theory-1",
@@ -91,7 +90,7 @@ class TheoryManager:
                 posterior=0.89,
                 support_class="strong",
                 tags=["hereditary", "breast-cancer", "validated"],
-                has_comments=True
+                has_comments=True,
             ),
             TheoryMetadata(
                 id="neuro-theory-1",
@@ -106,7 +105,7 @@ class TheoryManager:
                 posterior=0.81,
                 support_class="strong",
                 tags=["alzheimer", "risk-factor", "population"],
-                has_comments=True
+                has_comments=True,
             ),
             TheoryMetadata(
                 id="autism-theory-3",
@@ -121,7 +120,7 @@ class TheoryManager:
                 posterior=0.45,
                 support_class="weak",
                 tags=["chromatin", "draft", "early-stage"],
-                has_comments=False
+                has_comments=False,
             ),
             TheoryMetadata(
                 id="cardio-theory-1",
@@ -136,10 +135,10 @@ class TheoryManager:
                 posterior=0.68,
                 support_class="moderate",
                 tags=["cholesterol", "familial", "deprecated"],
-                has_comments=True
-            )
+                has_comments=True,
+            ),
         ]
-    
+
     def list_theories(
         self,
         scope: Optional[str] = None,
@@ -151,44 +150,50 @@ class TheoryManager:
         sort_by: str = "posterior",
         sort_order: str = "desc",
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> Dict[str, Any]:
         """List theories with filtering and sorting"""
-        
+
         # Start with all theories
         filtered_theories = self.theories.copy()
-        
+
         # Apply filters
         if scope:
             filtered_theories = [t for t in filtered_theories if t.scope == scope]
-        
+
         if lifecycle:
-            filtered_theories = [t for t in filtered_theories if t.lifecycle == lifecycle]
-        
+            filtered_theories = [
+                t for t in filtered_theories if t.lifecycle == lifecycle
+            ]
+
         if author:
             filtered_theories = [t for t in filtered_theories if t.author == author]
-        
+
         if has_comments is not None:
-            filtered_theories = [t for t in filtered_theories if t.has_comments == has_comments]
-        
+            filtered_theories = [
+                t for t in filtered_theories if t.has_comments == has_comments
+            ]
+
         if search:
             search_lower = search.lower()
             filtered_theories = [
-                t for t in filtered_theories 
-                if (search_lower in t.title.lower() or 
-                    search_lower in t.id.lower() or
-                    any(search_lower in tag.lower() for tag in t.tags))
+                t
+                for t in filtered_theories
+                if (
+                    search_lower in t.title.lower()
+                    or search_lower in t.id.lower()
+                    or any(search_lower in tag.lower() for tag in t.tags)
+                )
             ]
-        
+
         if tags:
             filtered_theories = [
-                t for t in filtered_theories
-                if any(tag in t.tags for tag in tags)
+                t for t in filtered_theories if any(tag in t.tags for tag in tags)
             ]
-        
+
         # Apply sorting
         reverse = sort_order == "desc"
-        
+
         if sort_by == "posterior":
             filtered_theories.sort(key=lambda t: t.posterior, reverse=reverse)
         elif sort_by == "evidence_count":
@@ -199,49 +204,61 @@ class TheoryManager:
             filtered_theories.sort(key=lambda t: t.updated_at, reverse=reverse)
         elif sort_by == "title":
             filtered_theories.sort(key=lambda t: t.title.lower(), reverse=reverse)
-        
+
         # Apply pagination
         total_count = len(filtered_theories)
-        paginated_theories = filtered_theories[offset:offset + limit]
-        
+        paginated_theories = filtered_theories[offset : offset + limit]
+
         return {
             "theories": [self._theory_to_dict(t) for t in paginated_theories],
             "total_count": total_count,
             "limit": limit,
             "offset": offset,
-            "has_more": offset + limit < total_count
+            "has_more": offset + limit < total_count,
         }
-    
-    def get_theory_summary(self, theory_id: str, version: Optional[str] = None) -> Optional[Dict[str, Any]]:
+
+    def get_theory_summary(
+        self, theory_id: str, version: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
         """Get theory summary by ID"""
         for theory in self.theories:
-            if theory.id == theory_id and (version is None or theory.version == version):
+            if theory.id == theory_id and (
+                version is None or theory.version == version
+            ):
                 return self._theory_to_dict(theory)
         return None
-    
+
     def get_theory_stats(self) -> Dict[str, Any]:
         """Get overall theory statistics"""
         total_theories = len(self.theories)
         active_theories = len([t for t in self.theories if t.lifecycle == "active"])
-        
+
         scope_counts = {}
         for theory in self.theories:
             scope_counts[theory.scope] = scope_counts.get(theory.scope, 0) + 1
-        
-        avg_posterior = sum(t.posterior for t in self.theories) / total_theories if total_theories > 0 else 0
-        
+
+        avg_posterior = (
+            sum(t.posterior for t in self.theories) / total_theories
+            if total_theories > 0
+            else 0
+        )
+
         return {
             "total_theories": total_theories,
             "active_theories": active_theories,
             "scope_distribution": scope_counts,
             "average_posterior": round(avg_posterior, 3),
             "support_classes": {
-                "strong": len([t for t in self.theories if t.support_class == "strong"]),
-                "moderate": len([t for t in self.theories if t.support_class == "moderate"]),
-                "weak": len([t for t in self.theories if t.support_class == "weak"])
-            }
+                "strong": len(
+                    [t for t in self.theories if t.support_class == "strong"]
+                ),
+                "moderate": len(
+                    [t for t in self.theories if t.support_class == "moderate"]
+                ),
+                "weak": len([t for t in self.theories if t.support_class == "weak"]),
+            },
         }
-    
+
     def _theory_to_dict(self, theory: TheoryMetadata) -> Dict[str, Any]:
         """Convert theory metadata to dictionary"""
         return {
@@ -257,5 +274,5 @@ class TheoryManager:
             "posterior": theory.posterior,
             "support_class": theory.support_class,
             "tags": theory.tags,
-            "has_comments": theory.has_comments
+            "has_comments": theory.has_comments,
         }

@@ -63,6 +63,7 @@ logs/
 secrets/
 .secrets
 config/local.json
+.github_tokens
 
 # DNA/Genomics specific
 *.vcf

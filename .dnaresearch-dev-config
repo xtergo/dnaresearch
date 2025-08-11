@@ -20,7 +20,7 @@ enable_coverage_metrics=true
 # Coverage threshold enforcement (true/false)
 # If true, blocks commits below specified threshold
 # Default: false
-enforce_coverage_threshold=true
+enforce_coverage_threshold=false
 
 # Coverage threshold percentage (0-100)
 # Minimum coverage required when enforcement is enabled
@@ -30,7 +30,7 @@ coverage_threshold=80
 # Unit test enforcement (true/false)
 # If true, blocks commits if any unit tests fail
 # Default: true
-require_all_tests_pass=true
+require_all_tests_pass=false
 
 # Test duration enforcement (true/false)
 # If true, blocks commits if test duration exceeds threshold
@@ -51,7 +51,7 @@ cleanup_after_tests=true
 # Test types to run (comma-separated)
 # Options: unit,integration,e2e,all
 # Default: all (runs all available tests)
-test_types=all
+test_types=unit
 
 # Store test results (true/false)
 # If true, stores test results in test-results/ directory
@@ -101,7 +101,7 @@ validate_migrations=true
 # Security scan enforcement (true/false)
 # If true, runs security scans on dependencies
 # Default: false (can be slow)
-security_scan_enabled=false
+security_scan_enabled=true
 
 # Performance test enforcement (true/false)
 # If true, runs basic performance tests

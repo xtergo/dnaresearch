@@ -58,8 +58,8 @@ def test_gene_search():
     response = requests.get("http://localhost:8000/genes/search?query=autism")
     assert response.status_code == 200
     data = response.json()
-    assert "hits" in data
-    assert len(data["hits"]) > 0
+    assert "results" in data
+    assert len(data["results"]) > 0
     print("✅ Gene search test passed")
 
 def main():

@@ -7,7 +7,7 @@ repos:
         language: script
         files: ^(api/.*|schemas/.*|docker/.*|requirements\.txt)$
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
       
       - id: schema-validation
         name: JSON Schema Validation

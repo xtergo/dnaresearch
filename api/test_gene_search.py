@@ -1,6 +1,5 @@
 """Tests for gene search functionality"""
 
-import pytest
 from fastapi.testclient import TestClient
 from main import app
 

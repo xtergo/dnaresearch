@@ -104,3 +104,208 @@ test_theory_validation.py ....                                           [100%]
 
 44
 2025-08-11 14:29:12,total_validation_duration_sec,20
+2025-08-11 16:05:12,python_lint_duration_sec,1
+2025-08-11 16:05:12,schema_validation_duration_sec,0
+2025-08-11 16:05:12,migration_validation_duration_sec,0
+2025-08-11 16:05:24,unit_test_duration_sec,12
+2025-08-11 16:08:14,python_lint_duration_sec,2
+2025-08-11 16:08:15,schema_validation_duration_sec,1
+2025-08-11 16:08:15,migration_validation_duration_sec,0
+2025-08-11 16:08:25,unit_test_duration_sec,10
+2025-08-11 16:08:29,e2e_test_duration_sec,4
+2025-08-11 16:08:33,coverage_analysis_duration_sec,4
+2025-08-11 16:08:33,test_coverage_percent,============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0
+rootdir: /home/echrjan/repos/dnaresearch/api
+plugins: anyio-4.9.0, asyncio-1.0.0
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 169 items
+
+test_anchor_diff.py .....                                                [  2%]
+test_caching.py ............                                             [ 10%]
+test_docs.py ...                                                         [ 11%]
+test_evidence_accumulation.py ........                                   [ 16%]
+test_evidence_validation.py ......                                       [ 20%]
+test_file_upload.py ...........................                          [ 36%]
+test_gene_search.py .............                                        [ 43%]
+test_health.py ...                                                       [ 45%]
+test_theory_creation.py ................                                 [ 55%]
+test_theory_execution.py ........                                        [ 59%]
+test_theory_forking.py .........                                         [ 65%]
+test_theory_listing.py ...................                               [ 76%]
+test_theory_validation.py ....                                           [ 78%]
+test_variant_interpretation.py .......................                   [ 92%]
+test_webhooks.py .............                                           [100%]
+
+=============================== warnings summary ===============================
+../../../.local/lib/python3.10/site-packages/starlette/formparsers.py:12
+  /home/echrjan/.local/lib/python3.10/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 169 passed, 1 warning in 2.07s ========================
+60
+📊 Coverage Summary:
+   Total Coverage: 60%
+   Status: ⚠️  MODERATE (60-79%)
+
+60
+2025-08-11 16:08:34,total_validation_duration_sec,22
+2025-08-11 16:13:09,python_lint_duration_sec,1
+2025-08-11 16:13:10,schema_validation_duration_sec,1
+2025-08-11 16:13:10,migration_validation_duration_sec,0
+2025-08-11 16:13:24,unit_test_duration_sec,14
+2025-08-11 16:13:29,e2e_test_duration_sec,5
+2025-08-11 16:13:36,coverage_analysis_duration_sec,7
+2025-08-11 16:13:36,test_coverage_percent,============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0
+rootdir: /home/echrjan/repos/dnaresearch/api
+plugins: anyio-4.9.0, asyncio-1.0.0
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 169 items
+
+test_anchor_diff.py .....                                                [  2%]
+test_caching.py ............                                             [ 10%]
+test_docs.py ...                                                         [ 11%]
+test_evidence_accumulation.py ........                                   [ 16%]
+test_evidence_validation.py ......                                       [ 20%]
+test_file_upload.py ...........................                          [ 36%]
+test_gene_search.py .............                                        [ 43%]
+test_health.py ...                                                       [ 45%]
+test_theory_creation.py ................                                 [ 55%]
+test_theory_execution.py ........                                        [ 59%]
+test_theory_forking.py .........                                         [ 65%]
+test_theory_listing.py ...................                               [ 76%]
+test_theory_validation.py ....                                           [ 78%]
+test_variant_interpretation.py .......................                   [ 92%]
+test_webhooks.py .............                                           [100%]
+
+=============================== warnings summary ===============================
+../../../.local/lib/python3.10/site-packages/starlette/formparsers.py:12
+  /home/echrjan/.local/lib/python3.10/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 169 passed, 1 warning in 3.63s ========================
+60
+📊 Coverage Summary:
+   Total Coverage: 60%
+   Status: ⚠️  MODERATE (60-79%)
+
+60
+2025-08-11 16:13:37,total_validation_duration_sec,29
+2025-08-11 16:28:48,python_lint_duration_sec,0
+2025-08-11 16:28:49,schema_validation_duration_sec,1
+2025-08-11 16:28:49,migration_validation_duration_sec,0
+2025-08-11 16:31:34,python_lint_duration_sec,1
+2025-08-11 16:31:34,schema_validation_duration_sec,0
+2025-08-11 16:31:34,migration_validation_duration_sec,0
+2025-08-11 16:31:43,unit_test_duration_sec,9
+2025-08-11 16:31:48,e2e_test_duration_sec,5
+2025-08-11 16:31:52,coverage_analysis_duration_sec,4
+2025-08-11 16:31:52,test_coverage_percent,============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0
+rootdir: /home/echrjan/repos/dnaresearch/api
+plugins: anyio-4.9.0, asyncio-1.0.0
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 205 items
+
+test_anchor_diff.py .....                                                [  2%]
+test_caching.py ............                                             [  8%]
+test_consent_api.py .................                                    [ 16%]
+test_consent_management.py ...................                           [ 25%]
+test_docs.py ...                                                         [ 27%]
+test_evidence_accumulation.py ........                                   [ 31%]
+test_evidence_validation.py ......                                       [ 34%]
+test_file_upload.py ...........................                          [ 47%]
+test_gene_search.py .............                                        [ 53%]
+test_health.py ...                                                       [ 55%]
+test_theory_creation.py ................                                 [ 62%]
+test_theory_execution.py ........                                        [ 66%]
+test_theory_forking.py .........                                         [ 71%]
+test_theory_listing.py ...................                               [ 80%]
+test_theory_validation.py ....                                           [ 82%]
+test_variant_interpretation.py .......................                   [ 93%]
+test_webhooks.py .............                                           [100%]
+
+=============================== warnings summary ===============================
+../../../.local/lib/python3.10/site-packages/starlette/formparsers.py:12
+  /home/echrjan/.local/lib/python3.10/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 205 passed, 1 warning in 2.48s ========================
+63
+📊 Coverage Summary:
+   Total Coverage: 63%
+   Status: ⚠️  MODERATE (60-79%)
+
+63
+2025-08-11 16:31:53,total_validation_duration_sec,20
+2025-08-11 16:45:11,python_lint_duration_sec,0
+2025-08-11 16:45:12,schema_validation_duration_sec,1
+2025-08-11 16:45:12,migration_validation_duration_sec,0
+2025-08-11 16:45:22,unit_test_duration_sec,10
+2025-08-11 16:45:27,e2e_test_duration_sec,5
+2025-08-11 16:45:31,coverage_analysis_duration_sec,4
+2025-08-11 16:45:31,test_coverage_percent,============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0
+rootdir: /home/echrjan/repos/dnaresearch/api
+plugins: anyio-4.9.0, asyncio-1.0.0
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 233 items
+
+test_anchor_diff.py .....                                                [  2%]
+test_caching.py ............                                             [  7%]
+test_consent_api.py .................                                    [ 14%]
+test_consent_management.py ...................                           [ 22%]
+test_docs.py ...                                                         [ 24%]
+test_evidence_accumulation.py ........                                   [ 27%]
+test_evidence_validation.py ......                                       [ 30%]
+test_file_upload.py ...........................                          [ 41%]
+test_gene_search.py .............                                        [ 47%]
+test_health.py ...                                                       [ 48%]
+test_researcher_reports.py ............................                  [ 60%]
+test_theory_creation.py ................                                 [ 67%]
+test_theory_execution.py ........                                        [ 70%]
+test_theory_forking.py .........                                         [ 74%]
+test_theory_listing.py ...................                               [ 82%]
+test_theory_validation.py ....                                           [ 84%]
+test_variant_interpretation.py .......................                   [ 94%]
+test_webhooks.py .............                                           [100%]
+
+=============================== warnings summary ===============================
+../../../.local/lib/python3.10/site-packages/starlette/formparsers.py:12
+  /home/echrjan/.local/lib/python3.10/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 233 passed, 1 warning in 2.61s ========================
+65
+📊 Coverage Summary:
+   Total Coverage: 65%
+   Status: ⚠️  MODERATE (60-79%)
+
+65
+2025-08-11 16:45:32,total_validation_duration_sec,21
+2025-08-11 16:53:10,python_lint_duration_sec,1
+2025-08-11 16:53:10,schema_validation_duration_sec,0
+2025-08-11 16:53:10,migration_validation_duration_sec,0
+2025-08-11 17:00:30,python_lint_duration_sec,0
+2025-08-11 17:00:31,schema_validation_duration_sec,1
+2025-08-11 17:00:31,migration_validation_duration_sec,0
+2025-08-11 17:05:57,python_lint_duration_sec,1
+2025-08-11 17:05:57,schema_validation_duration_sec,0
+2025-08-11 17:05:57,migration_validation_duration_sec,0
+2025-08-11 17:19:57,python_lint_duration_sec,1
+2025-08-11 17:19:57,schema_validation_duration_sec,0
+2025-08-11 17:19:57,migration_validation_duration_sec,0
+2025-08-11 17:31:45,python_lint_duration_sec,1
+2025-08-11 17:31:45,schema_validation_duration_sec,0
+2025-08-11 17:31:45,migration_validation_duration_sec,0
+2025-08-11 17:32:55,python_lint_duration_sec,2
+2025-08-11 17:32:55,schema_validation_duration_sec,0
+2025-08-11 17:32:55,migration_validation_duration_sec,0
+2025-08-11 17:34:05,python_lint_duration_sec,2
+2025-08-11 17:34:05,schema_validation_duration_sec,0
+2025-08-11 17:34:05,migration_validation_duration_sec,0

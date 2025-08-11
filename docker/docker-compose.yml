@@ -9,6 +9,6 @@ services:
   portal:
     build:
       context: ..
-    dockerfile: docker/Dockerfile.portal
+      dockerfile: docker/Dockerfile.portal
     ports: ["8080:80"]
     depends_on: [api]

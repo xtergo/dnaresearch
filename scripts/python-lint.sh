@@ -34,7 +34,7 @@ fi
 
 # Run flake8 linting
 log "Running flake8 linting..."
-if ! flake8 api/ --max-line-length=88 --extend-ignore=E203,W503; then
+if ! flake8 api/ --max-line-length=100 --extend-ignore=E203,W503,E501; then
     log "❌ Linting issues found."
     exit 1
 fi

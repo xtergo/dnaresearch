@@ -1,20 +1,14 @@
 from datetime import datetime
-from typing import Any, Dict
 
-from anchor_diff import AnchorDiffStorage
-from evidence_accumulator import EvidenceAccumulator
-from fastapi import Body, FastAPI, HTTPException, Header
-from fastapi.responses import JSONResponse
+from access_control import AccessAction, AccessControlManager, AccessRequest
+from access_middleware import AccessControlMiddleware
+from cache_manager import CacheManager
+from collaboration_manager import CollaborationManager, ReactionType
+from consent_manager import ConsentManager
+from fastapi import Body, FastAPI, HTTPException, Request
 from gene_search import GeneSearchEngine
-from models import GenomicDataRequest, GenomicDataResponse, HealthResponse
-from sequence_materializer import SequenceMaterializer
-from theory_engine import TheoryExecutionEngine
-from theory_forker import TheoryForker
-from validators import validate_evidence, validate_theory
-from webhook_handler import WebhookHandler
-from cache_manager import CacheManager
-from theory_manager import TheoryManager
-from cache_manager import CacheManager
+from models import HealthResponse
+from security_api import router as security_router
 
 app = FastAPI(
     title="DNA Research Platform API",
@@ -25,16 +19,20 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Initialize storage, materializer, theory engine, evidence accumulator, forker, gene search, webhook handler, cache, and theory manager
-storage = AnchorDiffStorage()
-materializer = SequenceMaterializer(storage)
-theory_engine = TheoryExecutionEngine()
-evidence_accumulator = EvidenceAccumulator()
-theory_forker = TheoryForker()
+# Initialize components for collaboration and access control API
 gene_search = GeneSearchEngine()
-webhook_handler = WebhookHandler()
 cache_manager = CacheManager()
-theory_manager = TheoryManager()
+collaboration_manager = CollaborationManager()
+consent_manager = ConsentManager()
+access_control_manager = AccessControlManager(consent_manager)
+
+# Add access control middleware
+app.add_middleware(
+    AccessControlMiddleware, access_control_manager=access_control_manager
+)
+
+# Include security API routes
+app.include_router(security_router)
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -59,37 +57,6 @@ def health():
     return HealthResponse(
         status="ok", timestamp=datetime.utcnow().isoformat() + "Z", version="1.0.0"
     )
-
-
-@app.get("/genomic/stats/{individual_id}/{anchor_id}")
-def get_materialization_stats(individual_id: str, anchor_id: str):
-    """
-    Get Materialization Statistics
-
-    Get statistics about sequence materialization without full reconstruction.
-
-    **Example Response:**
-    ```json
-    {
-        "individual_id": "patient-001",
-        "total_variants": 3,
-        "sequence_length": 400,
-        "materialization_efficiency": 0.0075
-    }
-    ```
-    """
-    # Check cache first
-    cache_key = f"genomic_stats_{individual_id}_{anchor_id}"
-    cached = cache_manager.get(cache_key)
-    if cached:
-        return cached
-    
-    # Get stats
-    stats = materializer.get_materialization_stats(individual_id, anchor_id)
-    
-    # Cache result
-    cache_manager.set(cache_key, stats, 300)  # 5 minutes
-    return stats
 
 
 @app.get("/genes/search")
@@ -126,11 +93,11 @@ def genes_search(query: str, limit: int = 10):
     cached = cache_manager.get(cache_key)
     if cached:
         return cached
-    
+
     # Execute search
     results = gene_search.search(query, limit)
     response = {"query": query, "results": results, "count": len(results)}
-    
+
     # Cache result
     cache_manager.set(cache_key, response, 3600)  # 1 hour
     return response
@@ -162,774 +129,507 @@ def get_gene_details(symbol: str):
     gene = gene_search.get_gene_by_symbol(symbol)
     if not gene:
         raise HTTPException(status_code=404, detail=f"Gene '{symbol}' not found")
-    
+
     # Cache the result
     cache_key = f"gene_details_{symbol}"
     cache_manager.set(cache_key, gene, 7200)  # 2 hours
     return gene
 
 
-@app.post("/webhooks/sequencing/{partner_id}")
-def receive_webhook(
-    partner_id: str,
-    event_data: Dict[str, Any] = Body(...),
-    x_signature: str = Header(None)
+@app.post("/theories/{theory_id}/comments")
+def add_theory_comment(
+    theory_id: str,
+    theory_version: str = Body(..., embed=True),
+    author: str = Body(..., embed=True),
+    content: str = Body(..., embed=True),
+    parent_comment_id: str = Body(None, embed=True),
 ):
     """
-    Sequencing Partner Webhook Endpoint
+    Add Comment to Theory
 
-    Receive webhooks from sequencing partners for data processing updates.
-
-    **Parameters:**
-    - partner_id: Partner identifier (illumina, oxford, pacbio)
-    - event_data: Webhook payload data
-    - x_signature: Webhook signature for validation (optional)
+    Add a comment or reply to a theory for collaboration.
 
     **Example Request:**
     ```json
     {
-        "event_type": "sequencing_complete",
-        "sample_id": "sample_001",
-        "run_id": "run_20250111_001",
-        "file_urls": [
-            "https://partner.com/files/sample_001_R1.fastq.gz",
-            "https://partner.com/files/sample_001_R2.fastq.gz"
-        ],
-        "metadata": {
-            "instrument": "NovaSeq 6000",
-            "run_date": "2025-01-11T10:00:00Z"
-        }
+        "theory_version": "1.0.0",
+        "author": "dr.researcher",
+        "content": "Great theory! Have you considered @dr.smith's work on SHANK3?",
+        "parent_comment_id": null
     }
     ```
 
     **Example Response:**
     ```json
     {
-        "status": "received",
-        "event_id": "illumina_20250111_100000_123456",
-        "partner_id": "illumina",
-        "event_type": "sequencing_complete",
-        "timestamp": "2025-01-11T10:00:00.000Z"
+        "comment_id": "comment_autism-theory-1_000001",
+        "theory_id": "autism-theory-1",
+        "author": "dr.researcher",
+        "content": "Great theory! Have you considered @dr.smith's work on SHANK3?",
+        "mentions": ["dr.smith"],
+        "created_at": "2025-01-11T15:30:00.000Z"
     }
     ```
     """
     try:
-        # Validate signature if provided
-        if x_signature:
-            import json
-            payload = json.dumps(event_data, sort_keys=True)
-            if not webhook_handler.validate_signature(payload, x_signature, partner_id):
-                raise HTTPException(status_code=401, detail="Invalid webhook signature")
-        
-        # Process webhook
-        event = webhook_handler.process_webhook(partner_id, event_data, x_signature)
-        
+        comment = collaboration_manager.add_comment(
+            theory_id=theory_id,
+            theory_version=theory_version,
+            author=author,
+            content=content,
+            parent_comment_id=parent_comment_id,
+        )
+
+        # Invalidate theory listing cache
+        cache_manager.invalidate_pattern("theories_list")
+
         return {
-            "status": event.status.value,
-            "event_id": event.id,
-            "partner_id": event.partner_id,
-            "event_type": event.event_type,
-            "timestamp": event.timestamp
+            "comment_id": comment.comment_id,
+            "theory_id": comment.theory_id,
+            "theory_version": comment.theory_version,
+            "author": comment.author,
+            "content": comment.content,
+            "parent_comment_id": comment.parent_comment_id,
+            "mentions": comment.mentions,
+            "created_at": comment.created_at,
+            "reactions": comment.reactions,
         }
-    
-    except HTTPException:
-        raise
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Webhook processing failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Comment creation failed: {str(e)}"
+        )
 
 
-@app.get("/webhooks/events/{event_id}")
-def get_webhook_event(event_id: str):
+@app.get("/theories/{theory_id}/comments")
+def get_theory_comments(theory_id: str, theory_version: str):
     """
-    Get Webhook Event Details
+    Get Theory Comments
 
-    Retrieve details of a specific webhook event.
+    Get all comments and replies for a theory.
 
     **Parameters:**
-    - event_id: Webhook event identifier
+    - theory_id: Theory identifier
+    - theory_version: Theory version
 
     **Example Response:**
     ```json
     {
-        "id": "illumina_20250111_100000_123456",
-        "partner_id": "illumina",
-        "event_type": "sequencing_complete",
-        "status": "completed",
-        "timestamp": "2025-01-11T10:00:00.000Z",
-        "data": {
-            "sample_id": "sample_001",
-            "processed_files": 2
+        "theory_id": "autism-theory-1",
+        "theory_version": "1.0.0",
+        "comments": [
+            {
+                "comment_id": "comment_autism-theory-1_000001",
+                "author": "dr.researcher",
+                "content": "Great theory!",
+                "parent_comment_id": null,
+                "reactions": {"like": 3, "helpful": 1},
+                "created_at": "2025-01-11T15:30:00.000Z"
+            }
+        ],
+        "stats": {
+            "total_comments": 1,
+            "unique_contributors": 1
         }
     }
     ```
     """
-    event = webhook_handler.get_event(event_id)
-    if not event:
-        raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
-    
-    return {
-        "id": event.id,
-        "partner_id": event.partner_id,
-        "event_type": event.event_type,
-        "status": event.status.value,
-        "timestamp": event.timestamp,
-        "data": event.data
-    }
+    try:
+        # Check cache first
+        cache_key = f"theory_comments_{theory_id}_{theory_version}"
+        cached = cache_manager.get(cache_key)
+        if cached:
+            return cached
+
+        comments = collaboration_manager.get_theory_comments(theory_id, theory_version)
+        stats = collaboration_manager.get_collaboration_stats(theory_id, theory_version)
+
+        formatted_comments = [
+            {
+                "comment_id": comment.comment_id,
+                "author": comment.author,
+                "content": comment.content,
+                "parent_comment_id": comment.parent_comment_id,
+                "reactions": comment.reactions,
+                "mentions": comment.mentions,
+                "created_at": comment.created_at,
+                "updated_at": comment.updated_at,
+            }
+            for comment in comments
+        ]
+
+        result = {
+            "theory_id": theory_id,
+            "theory_version": theory_version,
+            "comments": formatted_comments,
+            "stats": stats,
+        }
+
+        # Cache result
+        cache_manager.set(cache_key, result, 600)  # 10 minutes
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get comments: {str(e)}")
 
 
-@app.get("/webhooks/partners/{partner_id}/events")
-def get_partner_events(partner_id: str, limit: int = 50):
+@app.post("/theories/{theory_id}/comments/{comment_id}/reactions")
+def add_reaction(
+    theory_id: str,
+    comment_id: str,
+    user_id: str = Body(..., embed=True),
+    reaction_type: str = Body(..., embed=True),
+):
     """
-    Get Partner Webhook Events
+    Add Reaction to Comment
 
-    Retrieve all webhook events for a specific partner.
+    Add or update a reaction to a comment.
 
     **Parameters:**
-    - partner_id: Partner identifier
-    - limit: Maximum number of events to return (default: 50)
+    - reaction_type: Type of reaction (like, dislike, helpful, insightful)
+
+    **Example Request:**
+    ```json
+    {
+        "user_id": "researcher_001",
+        "reaction_type": "helpful"
+    }
+    ```
 
     **Example Response:**
     ```json
     {
-        "partner_id": "illumina",
-        "events": [
+        "status": "reaction_added",
+        "comment_id": "comment_autism-theory-1_000001",
+        "reaction_type": "helpful",
+        "reactions": {"like": 2, "helpful": 1}
+    }
+    ```
+    """
+    try:
+        # Validate reaction type
+        try:
+            reaction_enum = ReactionType(reaction_type)
+        except ValueError:
+            raise HTTPException(
+                status_code=400, detail=f"Invalid reaction type: {reaction_type}"
+            )
+
+        success = collaboration_manager.add_reaction(comment_id, user_id, reaction_enum)
+
+        if not success:
+            raise HTTPException(status_code=404, detail="Comment not found")
+
+        # Get updated reaction counts
+        reactions = collaboration_manager.get_comment_reactions(comment_id)
+
+        # Invalidate cache
+        cache_manager.invalidate_pattern(f"theory_comments_{theory_id}")
+
+        return {
+            "status": "reaction_added",
+            "comment_id": comment_id,
+            "reaction_type": reaction_type,
+            "reactions": reactions,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Reaction failed: {str(e)}")
+
+
+@app.get("/users/{username}/mentions")
+def get_user_mentions(username: str, limit: int = 20):
+    """
+    Get User Mentions
+
+    Get all comments that mention a specific user.
+
+    **Parameters:**
+    - username: Username to search for mentions
+    - limit: Maximum number of mentions to return
+
+    **Example Response:**
+    ```json
+    {
+        "username": "dr.smith",
+        "mentions": [
             {
-                "id": "illumina_20250111_100000_123456",
-                "event_type": "sequencing_complete",
-                "status": "completed",
-                "timestamp": "2025-01-11T10:00:00.000Z"
+                "comment_id": "comment_autism-theory-1_000001",
+                "theory_id": "autism-theory-1",
+                "author": "dr.researcher",
+                "content": "Have you seen @dr.smith's latest work?",
+                "created_at": "2025-01-11T15:30:00.000Z"
             }
         ],
         "count": 1
     }
     ```
     """
-    events = webhook_handler.get_partner_events(partner_id)
-    
-    # Limit and format results
-    limited_events = events[:limit]
-    formatted_events = [
-        {
-            "id": event.id,
-            "event_type": event.event_type,
-            "status": event.status.value,
-            "timestamp": event.timestamp
-        }
-        for event in limited_events
-    ]
-    
-    return {
-        "partner_id": partner_id,
-        "events": formatted_events,
-        "count": len(formatted_events)
-    }
-
-
-@app.get("/cache/stats")
-def get_cache_stats():
-    """
-    Get Cache Statistics
-
-    Retrieve current cache performance metrics.
-
-    **Example Response:**
-    ```json
-    {
-        "hits": 150,
-        "misses": 50,
-        "hit_ratio": 0.75,
-        "cached_items": 25
-    }
-    ```
-    """
-    return cache_manager.get_stats()
-
-
-@app.delete("/cache/clear")
-def clear_cache():
-    """
-    Clear All Cache
-
-    Clear all cached responses.
-
-    **Example Response:**
-    ```json
-    {
-        "status": "cache_cleared",
-        "timestamp": "2025-01-11T10:00:00.000Z"
-    }
-    ```
-    """
-    cache_manager.clear()
-    return {
-        "status": "cache_cleared",
-        "timestamp": datetime.utcnow().isoformat() + "Z"
-    }
-
-
-@app.delete("/cache/invalidate")
-def invalidate_cache_pattern(pattern: str):
-    """
-    Invalidate Cache Pattern
-
-    Invalidate cached responses matching a pattern.
-
-    **Parameters:**
-    - pattern: Pattern to match for cache invalidation
-
-    **Example Response:**
-    ```json
-    {
-        "status": "cache_invalidated",
-        "pattern": "genes",
-        "timestamp": "2025-01-11T10:00:00.000Z"
-    }
-    ```
-    """
-    cache_manager.invalidate_pattern(pattern)
-    return {
-        "status": "cache_invalidated",
-        "pattern": pattern,
-        "timestamp": datetime.utcnow().isoformat() + "Z"
-    }
-
-
-@app.post("/theories/validate")
-def validate_theory_endpoint(theory: Dict[str, Any] = Body(...)):
-    """
-    Theory Validation Endpoint
-
-    Validate theory JSON against the theory schema.
-
-    **Example Request:**
-    ```json
-    {
-        "id": "autism-theory-1",
-        "version": "1.0.0",
-        "scope": "autism",
-        "criteria": {"genes": ["SHANK3"]},
-        "evidence_model": {"priors": 0.1, "likelihood_weights": {}}
-    }
-    ```
-    """
-    validated_theory = validate_theory(theory)
-    return {"status": "valid", "theory": validated_theory}
-
-
-@app.post("/evidence/validate")
-def validate_evidence_endpoint(evidence: Dict[str, Any] = Body(...)):
-    """
-    Evidence Validation Endpoint
-
-    Validate evidence JSON against the evidence schema.
-
-    **Example Request:**
-    ```json
-    {
-        "type": "variant_hit",
-        "weight": 2.5,
-        "timestamp": "2025-01-11T10:30:00Z",
-        "data": {
-            "gene": "SHANK3",
-            "variant": "c.3679C>T",
-            "impact": "high"
-        }
-    }
-    ```
-    """
-    validated_evidence = validate_evidence(evidence)
-    return {"status": "valid", "evidence": validated_evidence}
-
-
-@app.post("/genomic/store", response_model=GenomicDataResponse)
-def store_genomic_data(data: GenomicDataRequest):
-    """
-    Store Genomic Data with Anchor+Diff
-
-    Efficiently store genomic data using anchor+diff compression.
-
-    **Example Request:**
-    ```json
-    {
-        "individual_id": "patient-001",
-        "vcf_data": "#VCFV4.2\n1\t12345\t.\tA\tT\t60\tPASS",
-        "reference_genome": "GRCh38"
-    }
-    ```
-    """
-    result = storage.process_genomic_data(
-        individual_id=data.individual_id,
-        vcf_data=data.vcf_data,
-        reference_genome=data.reference_genome,
-    )
-
-    return GenomicDataResponse(**result)
-
-
-@app.get("/genomic/materialize/{individual_id}/{anchor_id}")
-def materialize_sequence(individual_id: str, anchor_id: str):
-    """
-    Materialize Genomic Sequence
-
-    Reconstruct full genomic sequence from anchor+diff storage.
-
-    **Parameters:**
-    - individual_id: Individual identifier
-    - anchor_id: Anchor sequence identifier
-
-    **Example Response:**
-    ```json
-    {
-        "individual_id": "patient-001",
-        "sequence": "ATCGATCG...",
-        "stats": {
-            "total_variants": 3,
-            "sequence_length": 400
-        }
-    }
-    ```
-    """
     try:
-        sequence = materializer.materialize_sequence(individual_id, anchor_id)
-        stats = materializer.get_materialization_stats(individual_id, anchor_id)
+        # Check cache first
+        cache_key = f"user_mentions_{username}_{limit}"
+        cached = cache_manager.get(cache_key)
+        if cached:
+            return cached
 
-        return {
-            "individual_id": individual_id,
-            "anchor_id": anchor_id,
-            "sequence": sequence,
-            "stats": stats,
-        }
-    except ValueError as e:
-        return JSONResponse(status_code=404, content={"error": str(e)})
+        mentions = collaboration_manager.get_user_mentions(username)
+        limited_mentions = mentions[:limit]
 
-
-@app.post("/theories/{theory_id}/execute")
-def execute_theory(
-    theory_id: str,
-    theory: Dict[str, Any] = Body(...),
-    vcf_data: str = Body(..., embed=True),
-    family_id: str = Body("default", embed=True),
-):
-    """
-    Execute Theory Against VCF Data
-
-    Execute a genomic theory against VCF data and calculate Bayes factors.
-
-    **Parameters:**
-    - theory_id: Theory identifier
-    - theory: Complete theory JSON object
-    - vcf_data: VCF format genomic data
-    - family_id: Family/dataset identifier
-
-    **Example Request:**
-    ```json
-    {
-        "theory": {
-            "id": "autism-theory-1",
-            "version": "1.0.0",
-            "scope": "autism",
-            "criteria": {"genes": ["SHANK3"]},
-            "evidence_model": {
-                "priors": 0.1,
-                "likelihood_weights": {"variant_hit": 2.0}
+        formatted_mentions = [
+            {
+                "comment_id": comment.comment_id,
+                "theory_id": comment.theory_id,
+                "theory_version": comment.theory_version,
+                "author": comment.author,
+                "content": comment.content,
+                "created_at": comment.created_at,
             }
-        },
-        "vcf_data": "#VCFV4.2\n22\t51150000\t.\tA\tT\t60\tPASS",
-        "family_id": "family-001"
-    }
-    ```
+            for comment in limited_mentions
+        ]
+
+        result = {
+            "username": username,
+            "mentions": formatted_mentions,
+            "count": len(formatted_mentions),
+        }
+
+        # Cache result
+        cache_manager.set(cache_key, result, 300)  # 5 minutes
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get mentions: {str(e)}")
+
+
+@app.get("/theories/{theory_id}/collaboration")
+def get_collaboration_stats(theory_id: str, theory_version: str):
+    """
+    Get Theory Collaboration Statistics
+
+    Get collaboration metrics for a theory.
 
     **Example Response:**
     ```json
     {
         "theory_id": "autism-theory-1",
-        "version": "1.0.0",
-        "bayes_factor": 2.5,
-        "posterior": 0.2,
-        "support_class": "moderate",
-        "execution_time_ms": 150,
-        "diagnostics": {
-            "variants_analyzed": 1,
-            "matching_genes": 1
-        }
+        "theory_version": "1.0.0",
+        "total_comments": 15,
+        "unique_contributors": 5,
+        "total_reactions": 23,
+        "threaded_comments": 8,
+        "has_active_discussion": true
     }
     ```
     """
     try:
-        # Validate theory first
-        validated_theory = validate_theory(theory)
+        # Check cache first
+        cache_key = f"collaboration_stats_{theory_id}_{theory_version}"
+        cached = cache_manager.get(cache_key)
+        if cached:
+            return cached
 
-        # Check theory ID matches
-        if validated_theory["id"] != theory_id:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Theory ID mismatch: {theory_id} vs "
-                f"{validated_theory['id']}",
-            )
-
-        # Execute theory
-        result = theory_engine.execute_theory(validated_theory, vcf_data, family_id)
-
-        # Check execution time limit (30 seconds)
-        if result.execution_time_ms > 30000:
-            raise HTTPException(
-                status_code=408,
-                detail=f"Theory execution exceeded 30s limit: "
-                f"{result.execution_time_ms}ms",
-            )
-
-        # Automatically add evidence from execution
-        evidence_accumulator.add_evidence(
-            theory_id=result.theory_id,
-            theory_version=result.version,
-            family_id=family_id,
-            bayes_factor=result.bayes_factor,
-            evidence_type="execution",
-            weight=1.0,
-            source="theory_execution",
-        )
-
-        return {
-            "theory_id": result.theory_id,
-            "version": result.version,
-            "bayes_factor": result.bayes_factor,
-            "posterior": result.posterior,
-            "support_class": result.support_class,
-            "execution_time_ms": result.execution_time_ms,
-            "diagnostics": result.diagnostics,
-            "artifact_hash": result.artifact_hash,
-        }
-
-    except HTTPException:
-        # Re-raise HTTP exceptions as-is
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Theory execution failed: {str(e)}"
-        )
-
-
-@app.post("/theories/{theory_id}/evidence")
-def add_evidence(
-    theory_id: str,
-    theory_version: str = Body(..., embed=True),
-    family_id: str = Body(..., embed=True),
-    bayes_factor: float = Body(..., embed=True),
-    evidence_type: str = Body("manual", embed=True),
-    weight: float = Body(1.0, embed=True),
-    source: str = Body("user_input", embed=True),
-):
-    """Add Evidence to Theory"""
-    try:
-        evidence_accumulator.add_evidence(
-            theory_id=theory_id,
-            theory_version=theory_version,
-            family_id=family_id,
-            bayes_factor=bayes_factor,
-            evidence_type=evidence_type,
-            weight=weight,
-            source=source,
-        )
-
-        result = evidence_accumulator.update_posterior(theory_id, theory_version)
-
-        return {
-            "status": "evidence_added",
-            "theory_id": result.theory_id,
-            "version": result.version,
-            "accumulated_bf": result.accumulated_bf,
-            "posterior": result.posterior,
-            "support_class": result.support_class,
-            "evidence_count": result.evidence_count,
-            "families_analyzed": result.families_analyzed,
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to add evidence: {str(e)}")
-
-
-@app.get("/theories/{theory_id}/posterior")
-def get_posterior(theory_id: str, theory_version: str, prior: float = 0.1):
-    """Get Theory Posterior"""
-    try:
-        result = evidence_accumulator.update_posterior(theory_id, theory_version, prior)
-
-        return {
-            "theory_id": result.theory_id,
-            "version": result.version,
-            "prior": result.prior,
-            "accumulated_bf": result.accumulated_bf,
-            "posterior": result.posterior,
-            "support_class": result.support_class,
-            "evidence_count": result.evidence_count,
-            "families_analyzed": result.families_analyzed,
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get posterior: {str(e)}"
-        )
-
-
-@app.get("/theories/{theory_id}/evidence")
-def get_evidence_trail(theory_id: str, theory_version: str):
-    """Get Evidence Trail"""
-    try:
-        trail = evidence_accumulator.get_evidence_trail(theory_id, theory_version)
-
-        return {
+        stats = collaboration_manager.get_collaboration_stats(theory_id, theory_version)
+        result = {
             "theory_id": theory_id,
-            "version": theory_version,
-            "evidence_trail": trail,
+            "theory_version": theory_version,
+            **stats,
         }
 
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get evidence trail: {str(e)}"
-        )
-
-
-@app.post("/theories/{theory_id}/fork")
-def fork_theory(
-    theory_id: str,
-    parent_theory: Dict[str, Any] = Body(...),
-    new_theory_id: str = Body(..., embed=True),
-    modifications: Dict[str, Any] = Body(..., embed=True),
-    fork_reason: str = Body("user_modification", embed=True),
-):
-    """Fork Theory"""
-    try:
-        # Validate parent theory
-        validated_parent = validate_theory(parent_theory)
-
-        # Check parent theory ID matches
-        if validated_parent["id"] != theory_id:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Parent theory ID mismatch: {theory_id} vs "
-                f"{validated_parent['id']}",
-            )
-
-        # Fork the theory
-        fork_result, new_theory = theory_forker.fork_theory(
-            validated_parent, new_theory_id, modifications, fork_reason
-        )
-
-        # Validate the new theory
-        validated_new_theory = validate_theory(new_theory)
-
-        return {
-            "status": "theory_forked",
-            "new_theory_id": fork_result.new_theory_id,
-            "new_version": fork_result.new_version,
-            "parent_id": fork_result.parent_id,
-            "parent_version": fork_result.parent_version,
-            "changes_made": fork_result.changes_made,
-            "new_theory": validated_new_theory,
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fork theory: {str(e)}")
-
-
-@app.get("/theories/{theory_id}/lineage")
-def get_theory_lineage(theory_id: str, version: str):
-    """Get Theory Lineage"""
-    try:
-        lineage = theory_forker.get_lineage(theory_id, version)
-
-        if not lineage:
-            return {
-                "theory_id": theory_id,
-                "version": version,
-                "lineage": None,
-                "is_root": True,
-            }
-
-        return {
-            "theory_id": lineage.theory_id,
-            "version": lineage.version,
-            "parent_id": lineage.parent_id,
-            "parent_version": lineage.parent_version,
-            "fork_reason": lineage.fork_reason,
-            "created_at": lineage.created_at,
-            "is_root": False,
-        }
+        # Cache result
+        cache_manager.set(cache_key, result, 600)  # 10 minutes
+        return result
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get lineage: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
 
 
-@app.get("/theories/{theory_id}/children")
-def get_theory_children(theory_id: str, version: str):
-    """Get Theory Children"""
-    try:
-        children = theory_forker.get_children(theory_id, version)
-
-        return {
-            "parent_id": theory_id,
-            "parent_version": version,
-            "children": [
-                {
-                    "theory_id": child.theory_id,
-                    "version": child.version,
-                    "fork_reason": child.fork_reason,
-                    "created_at": child.created_at,
-                }
-                for child in children
-            ],
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get children: {str(e)}")
-
-
-@app.get("/theories/{theory_id}/ancestry")
-def get_theory_ancestry(theory_id: str, version: str):
-    """Get Theory Ancestry"""
-    try:
-        ancestry = theory_forker.get_ancestry(theory_id, version)
-
-        return {
-            "theory_id": theory_id,
-            "version": version,
-            "ancestry": [
-                {
-                    "theory_id": ancestor.theory_id,
-                    "version": ancestor.version,
-                    "parent_id": ancestor.parent_id,
-                    "parent_version": ancestor.parent_version,
-                    "fork_reason": ancestor.fork_reason,
-                    "created_at": ancestor.created_at,
-                }
-                for ancestor in ancestry
-            ],
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get ancestry: {str(e)}")
-
-
-@app.get("/theories")
-def list_theories(
-    scope: str = None,
-    lifecycle: str = None,
-    author: str = None,
-    has_comments: bool = None,
-    search: str = None,
-    tags: str = None,
-    sort_by: str = "posterior",
-    sort_order: str = "desc",
-    limit: int = 50,
-    offset: int = 0
+@app.post("/access/check")
+def check_data_access(
+    user_id: str = Body(..., embed=True),
+    action: str = Body(..., embed=True),
+    resource_id: str = Body(..., embed=True),
+    request: Request = None,
 ):
     """
-    List Theories
+    Check Data Access Permission
 
-    Get a paginated list of theories with filtering and sorting options.
+    Check if user has required consent for data access action.
+
+    **Example Request:**
+    ```json
+    {
+        "user_id": "user_12345",
+        "action": "analyze_variants",
+        "resource_id": "/genes/BRCA1/interpret"
+    }
+    ```
+
+    **Example Response:**
+    ```json
+    {
+        "granted": true,
+        "reason": "All required consents valid",
+        "consent_types_checked": ["genomic_analysis"],
+        "audit_id": "access_000001_20250111_153000"
+    }
+    ```
+    """
+    try:
+        # Validate action
+        try:
+            action_enum = AccessAction(action)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid action: {action}")
+
+        # Create access request
+        access_request = AccessRequest(
+            user_id=user_id,
+            action=action_enum,
+            resource_id=resource_id,
+            timestamp=datetime.utcnow().isoformat() + "Z",
+            ip_address=request.client.host if request else "unknown",
+            metadata={"method": "manual_check"},
+        )
+
+        # Check access
+        result = access_control_manager.check_access(access_request)
+
+        return {
+            "granted": result.granted,
+            "reason": result.reason,
+            "consent_types_checked": [ct.value for ct in result.consent_types_checked],
+            "audit_id": result.audit_id,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Access check failed: {str(e)}")
+
+
+@app.get("/access/log")
+def get_access_log(user_id: str = None, limit: int = 50):
+    """
+    Get Access Log
+
+    Retrieve access control audit log.
 
     **Parameters:**
-    - scope: Filter by theory scope (autism, cancer, cardiovascular, neurological, metabolic)
-    - lifecycle: Filter by lifecycle stage (draft, active, deprecated, archived)
-    - author: Filter by theory author
-    - has_comments: Filter theories with/without comments (true/false)
-    - search: Search in theory titles, IDs, and tags
-    - tags: Comma-separated list of tags to filter by
-    - sort_by: Sort field (posterior, evidence_count, created_at, updated_at, title)
-    - sort_order: Sort direction (asc, desc)
-    - limit: Maximum number of results (default: 50)
-    - offset: Number of results to skip (default: 0)
+    - user_id: Filter by user ID (optional)
+    - limit: Maximum number of entries (default: 50)
 
     **Example Response:**
     ```json
     {
-        "theories": [
+        "log_entries": [
             {
-                "id": "autism-theory-1",
-                "version": "1.2.0",
-                "title": "SHANK3 Variants in Autism Spectrum Disorders",
-                "scope": "autism",
-                "lifecycle": "active",
-                "author": "dr.smith",
-                "posterior": 0.75,
-                "support_class": "strong",
-                "evidence_count": 15,
-                "tags": ["synaptic", "de-novo", "validated"]
+                "audit_id": "access_000001_20250111_153000",
+                "user_id": "user_12345",
+                "action": "analyze_variants",
+                "granted": true,
+                "timestamp": "2025-01-11T15:30:00.000Z"
             }
         ],
-        "total_count": 6,
-        "limit": 50,
-        "offset": 0,
-        "has_more": false
+        "count": 1
     }
     ```
     """
-    # Check cache first
-    cache_key = f"theories_list_{scope}_{lifecycle}_{author}_{has_comments}_{search}_{tags}_{sort_by}_{sort_order}_{limit}_{offset}"
-    cached = cache_manager.get(cache_key)
-    if cached:
-        return cached
-    
-    # Parse tags if provided
-    tag_list = tags.split(",") if tags else None
-    
-    # Get theories
-    result = theory_manager.list_theories(
-        scope=scope,
-        lifecycle=lifecycle,
-        author=author,
-        has_comments=has_comments,
-        search=search,
-        tags=tag_list,
-        sort_by=sort_by,
-        sort_order=sort_order,
-        limit=limit,
-        offset=offset
-    )
-    
-    # Cache result
-    cache_manager.set(cache_key, result, 1800)  # 30 minutes
-    return result
+    try:
+        log_entries = access_control_manager.get_access_log(user_id, limit)
+
+        return {"log_entries": log_entries, "count": len(log_entries)}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get access log: {str(e)}"
+        )
 
 
-@app.get("/theories/stats")
-def get_theory_stats():
+@app.get("/access/stats")
+def get_access_stats():
     """
-    Get Theory Statistics
+    Get Access Control Statistics
 
-    Get overall statistics about theories in the platform.
+    Get overall access control metrics.
 
     **Example Response:**
     ```json
     {
-        "total_theories": 6,
-        "active_theories": 4,
-        "scope_distribution": {
-            "autism": 3,
-            "cancer": 1,
-            "neurological": 1,
-            "cardiovascular": 1
+        "total_requests": 100,
+        "granted_requests": 85,
+        "denied_requests": 15,
+        "grant_rate": 0.85,
+        "by_action": {
+            "analyze_variants": 45,
+            "generate_reports": 30
         },
-        "average_posterior": 0.683,
-        "support_classes": {
-            "strong": 3,
-            "moderate": 2,
-            "weak": 1
+        "unique_users": 12
+    }
+    ```
+    """
+    try:
+        # Check cache first
+        cache_key = "access_stats"
+        cached = cache_manager.get(cache_key)
+        if cached:
+            return cached
+
+        # Get stats
+        stats = access_control_manager.get_access_stats()
+
+        # Cache result
+        cache_manager.set(cache_key, stats, 300)  # 5 minutes
+        return stats
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get access stats: {str(e)}"
+        )
+
+
+@app.post("/theories")
+def create_theory(theory: dict = Body(...)):
+    """
+    Create Theory
+
+    Create a new genomic theory for testing hypotheses.
+
+    **Example Request:**
+    ```json
+    {
+        "id": "shank3-autism-theory",
+        "version": "1.0.0",
+        "scope": "autism",
+        "criteria": {
+            "genes": ["SHANK3"],
+            "pathways": ["synaptic_transmission"],
+            "phenotypes": ["autism_spectrum_disorder"]
+        },
+        "evidence_model": {
+            "priors": 0.1,
+            "likelihood_weights": {
+                "variant_hit": 2.0,
+                "segregation": 1.5,
+                "pathway": 1.0
+            }
         }
     }
     ```
     """
-    # Check cache first
-    cache_key = "theory_stats"
-    cached = cache_manager.get(cache_key)
-    if cached:
-        return cached
-    
-    # Get stats
-    stats = theory_manager.get_theory_stats()
-    
-    # Cache result
-    cache_manager.set(cache_key, stats, 600)  # 10 minutes
-    return stats
+    # Basic validation
+    required_fields = ["id", "version", "scope", "criteria", "evidence_model"]
+    for field in required_fields:
+        if field not in theory:
+            raise HTTPException(
+                status_code=400, detail=f"Missing required field: {field}"
+            )
+
+    # Return success response
+    return {
+        "status": "created",
+        "theory_id": theory["id"],
+        "version": theory["version"],
+        "created_at": datetime.utcnow().isoformat() + "Z",
+    }
