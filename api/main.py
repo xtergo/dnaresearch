@@ -13,6 +13,7 @@ from theory_forker import TheoryForker
 from validators import validate_evidence, validate_theory
 from webhook_handler import WebhookHandler
 from cache_manager import CacheManager
+from theory_manager import TheoryManager
 from cache_manager import CacheManager
 
 app = FastAPI(
@@ -24,7 +25,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Initialize storage, materializer, theory engine, evidence accumulator, forker, gene search, webhook handler, and cache
+# Initialize storage, materializer, theory engine, evidence accumulator, forker, gene search, webhook handler, cache, and theory manager
 storage = AnchorDiffStorage()
 materializer = SequenceMaterializer(storage)
 theory_engine = TheoryExecutionEngine()
@@ -33,6 +34,7 @@ theory_forker = TheoryForker()
 gene_search = GeneSearchEngine()
 webhook_handler = WebhookHandler()
 cache_manager = CacheManager()
+theory_manager = TheoryManager()
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -808,3 +810,126 @@ def get_theory_ancestry(theory_id: str, version: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get ancestry: {str(e)}")
+
+
+@app.get("/theories")
+def list_theories(
+    scope: str = None,
+    lifecycle: str = None,
+    author: str = None,
+    has_comments: bool = None,
+    search: str = None,
+    tags: str = None,
+    sort_by: str = "posterior",
+    sort_order: str = "desc",
+    limit: int = 50,
+    offset: int = 0
+):
+    """
+    List Theories
+
+    Get a paginated list of theories with filtering and sorting options.
+
+    **Parameters:**
+    - scope: Filter by theory scope (autism, cancer, cardiovascular, neurological, metabolic)
+    - lifecycle: Filter by lifecycle stage (draft, active, deprecated, archived)
+    - author: Filter by theory author
+    - has_comments: Filter theories with/without comments (true/false)
+    - search: Search in theory titles, IDs, and tags
+    - tags: Comma-separated list of tags to filter by
+    - sort_by: Sort field (posterior, evidence_count, created_at, updated_at, title)
+    - sort_order: Sort direction (asc, desc)
+    - limit: Maximum number of results (default: 50)
+    - offset: Number of results to skip (default: 0)
+
+    **Example Response:**
+    ```json
+    {
+        "theories": [
+            {
+                "id": "autism-theory-1",
+                "version": "1.2.0",
+                "title": "SHANK3 Variants in Autism Spectrum Disorders",
+                "scope": "autism",
+                "lifecycle": "active",
+                "author": "dr.smith",
+                "posterior": 0.75,
+                "support_class": "strong",
+                "evidence_count": 15,
+                "tags": ["synaptic", "de-novo", "validated"]
+            }
+        ],
+        "total_count": 6,
+        "limit": 50,
+        "offset": 0,
+        "has_more": false
+    }
+    ```
+    """
+    # Check cache first
+    cache_key = f"theories_list_{scope}_{lifecycle}_{author}_{has_comments}_{search}_{tags}_{sort_by}_{sort_order}_{limit}_{offset}"
+    cached = cache_manager.get(cache_key)
+    if cached:
+        return cached
+    
+    # Parse tags if provided
+    tag_list = tags.split(",") if tags else None
+    
+    # Get theories
+    result = theory_manager.list_theories(
+        scope=scope,
+        lifecycle=lifecycle,
+        author=author,
+        has_comments=has_comments,
+        search=search,
+        tags=tag_list,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        limit=limit,
+        offset=offset
+    )
+    
+    # Cache result
+    cache_manager.set(cache_key, result, 1800)  # 30 minutes
+    return result
+
+
+@app.get("/theories/stats")
+def get_theory_stats():
+    """
+    Get Theory Statistics
+
+    Get overall statistics about theories in the platform.
+
+    **Example Response:**
+    ```json
+    {
+        "total_theories": 6,
+        "active_theories": 4,
+        "scope_distribution": {
+            "autism": 3,
+            "cancer": 1,
+            "neurological": 1,
+            "cardiovascular": 1
+        },
+        "average_posterior": 0.683,
+        "support_classes": {
+            "strong": 3,
+            "moderate": 2,
+            "weak": 1
+        }
+    }
+    ```
+    """
+    # Check cache first
+    cache_key = "theory_stats"
+    cached = cache_manager.get(cache_key)
+    if cached:
+        return cached
+    
+    # Get stats
+    stats = theory_manager.get_theory_stats()
+    
+    # Cache result
+    cache_manager.set(cache_key, stats, 600)  # 10 minutes
+    return stats
