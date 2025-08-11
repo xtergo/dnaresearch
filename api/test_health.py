@@ -1,6 +1,6 @@
 from datetime import datetime
 
-import pytest
+# import pytest  # Unused import
 from fastapi.testclient import TestClient
 from main import app
 

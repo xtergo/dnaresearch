@@ -8,7 +8,6 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
-    Text,
     create_engine,
 )
 from sqlalchemy.ext.declarative import declarative_base

@@ -115,20 +115,20 @@ fi
 
 log "INFO" "✅ Unit tests passed (${UNIT_TEST_DURATION}s)"
 
-# 5. Integration Tests
-if [[ "$TEST_TYPES" == "all" ]] || [[ "$TEST_TYPES" == *"integration"* ]]; then
-    log "INFO" "🔗 Running integration tests..."
-    INTEGRATION_START=$(start_timer)
-    
-    if ! "$SCRIPT_DIR/run-integration-tests.sh"; then
-        log "ERROR" "❌ Integration tests failed"
-        exit 1
-    fi
-    
-    INTEGRATION_DURATION=$(end_timer $INTEGRATION_START)
-    collect_metric "integration_test_duration_sec" "$INTEGRATION_DURATION"
-    log "INFO" "✅ Integration tests passed (${INTEGRATION_DURATION}s)"
-fi
+# 5. Integration Tests (disabled - not implemented yet)
+# if [[ "$TEST_TYPES" == "all" ]] || [[ "$TEST_TYPES" == *"integration"* ]]; then
+#     log "INFO" "🔗 Running integration tests..."
+#     INTEGRATION_START=$(start_timer)
+#     
+#     if ! "$SCRIPT_DIR/run-integration-tests.sh"; then
+#         log "ERROR" "❌ Integration tests failed"
+#         exit 1
+#     fi
+#     
+#     INTEGRATION_DURATION=$(end_timer $INTEGRATION_START)
+#     collect_metric "integration_test_duration_sec" "$INTEGRATION_DURATION"
+#     log "INFO" "✅ Integration tests passed (${INTEGRATION_DURATION}s)"
+# fi
 
 # 6. E2E Tests
 if [[ "$TEST_TYPES" == "all" ]] || [[ "$TEST_TYPES" == *"e2e"* ]]; then

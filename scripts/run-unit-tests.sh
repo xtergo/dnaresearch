@@ -27,11 +27,7 @@ if [[ "$ENVIRONMENT_TYPE" == "docker" ]]; then
     fi
     
     # Run unit tests
-    if [[ "$PARALLEL_TESTS" == "true" ]]; then
-        docker compose -f docker/docker-compose.test.yml run --rm api pytest -v -n auto --cov=. --cov-report=xml --cov-report=term-missing
-    else
-        docker compose -f docker/docker-compose.test.yml run --rm api pytest -v --cov=. --cov-report=xml --cov-report=term-missing
-    fi
+    docker compose -f docker/docker-compose.test.yml run --rm api pytest -v --cov=. --cov-report=xml --cov-report=term-missing
     
     # Store test results
     if [[ "$STORE_TEST_RESULTS" == "true" ]]; then
@@ -45,12 +41,7 @@ else
     log "Using local environment for unit tests"
     
     cd api
-    
-    if [[ "$PARALLEL_TESTS" == "true" ]]; then
-        pytest -v -n auto --cov=. --cov-report=xml --cov-report=term-missing
-    else
-        pytest -v --cov=. --cov-report=xml --cov-report=term-missing
-    fi
+    pytest -v --cov=. --cov-report=xml --cov-report=term-missing
     
     # Store test results
     if [[ "$STORE_TEST_RESULTS" == "true" ]]; then

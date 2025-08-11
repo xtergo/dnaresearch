@@ -8,8 +8,19 @@ from version_utils import validate_semver
 
 def load_schema(schema_name: str) -> Dict[str, Any]:
     """Load JSON schema from schemas directory"""
+    import os
+
     try:
-        with open(f"../schemas/{schema_name}.json") as f:
+        # Try Docker path first (schemas copied to /app/schemas/)
+        docker_path = f"schemas/{schema_name}.json"
+        if os.path.exists(docker_path):
+            with open(docker_path) as f:
+                return json.load(f)
+
+        # Fallback to local development path
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        local_path = os.path.join(project_root, "schemas", f"{schema_name}.json")
+        with open(local_path) as f:
             return json.load(f)
     except FileNotFoundError:
         raise HTTPException(status_code=500, detail=f"Schema {schema_name} not found")

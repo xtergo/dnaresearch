@@ -1,0 +1,106 @@
+2025-08-11 13:10:05,python_lint_duration_sec,0
+2025-08-11 13:10:06,schema_validation_duration_sec,1
+2025-08-11 13:10:06,migration_validation_duration_sec,0
+2025-08-11 13:10:22,python_lint_duration_sec,1
+2025-08-11 13:10:22,schema_validation_duration_sec,0
+2025-08-11 13:10:22,migration_validation_duration_sec,0
+2025-08-11 13:12:36,python_lint_duration_sec,1
+2025-08-11 13:12:36,schema_validation_duration_sec,0
+2025-08-11 13:12:36,migration_validation_duration_sec,0
+2025-08-11 13:13:00,python_lint_duration_sec,1
+2025-08-11 13:13:00,schema_validation_duration_sec,0
+2025-08-11 13:13:00,migration_validation_duration_sec,0
+2025-08-11 13:13:07,unit_test_duration_sec,7
+2025-08-11 13:13:33,python_lint_duration_sec,1
+2025-08-11 13:13:33,schema_validation_duration_sec,0
+2025-08-11 13:13:33,migration_validation_duration_sec,0
+2025-08-11 13:13:40,unit_test_duration_sec,7
+2025-08-11 13:14:09,python_lint_duration_sec,1
+2025-08-11 13:14:09,schema_validation_duration_sec,0
+2025-08-11 13:14:09,migration_validation_duration_sec,0
+2025-08-11 13:14:14,unit_test_duration_sec,5
+2025-08-11 13:14:26,e2e_test_duration_sec,12
+2025-08-11 13:17:59,python_lint_duration_sec,1
+2025-08-11 13:17:59,schema_validation_duration_sec,0
+2025-08-11 13:17:59,migration_validation_duration_sec,0
+2025-08-11 13:18:07,unit_test_duration_sec,8
+2025-08-11 13:18:12,e2e_test_duration_sec,5
+2025-08-11 13:20:55,python_lint_duration_sec,1
+2025-08-11 13:20:56,schema_validation_duration_sec,1
+2025-08-11 13:20:56,migration_validation_duration_sec,0
+2025-08-11 13:21:24,unit_test_duration_sec,28
+2025-08-11 13:21:29,e2e_test_duration_sec,5
+2025-08-11 13:45:04,python_lint_duration_sec,0
+2025-08-11 13:45:04,schema_validation_duration_sec,0
+2025-08-11 13:45:04,migration_validation_duration_sec,0
+2025-08-11 13:46:08,python_lint_duration_sec,0
+2025-08-11 13:46:08,schema_validation_duration_sec,0
+2025-08-11 13:46:08,migration_validation_duration_sec,0
+2025-08-11 13:46:15,unit_test_duration_sec,7
+2025-08-11 13:46:20,e2e_test_duration_sec,5
+2025-08-11 13:46:22,coverage_analysis_duration_sec,2
+2025-08-11 13:46:22,test_coverage_percent,============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0
+rootdir: /home/echrjan/repos/dnaresearch/api
+plugins: anyio-4.9.0, asyncio-1.0.0
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 37 items
+
+test_anchor_diff.py .....                                                [ 13%]
+test_docs.py ...                                                         [ 21%]
+test_evidence_accumulation.py ........                                   [ 43%]
+test_evidence_validation.py ......                                       [ 59%]
+test_health.py ...                                                       [ 67%]
+test_theory_execution.py ........                                        [ 89%]
+test_theory_validation.py ....                                           [100%]
+
+=============================== warnings summary ===============================
+../../../.local/lib/python3.10/site-packages/starlette/formparsers.py:12
+  /home/echrjan/.local/lib/python3.10/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 37 passed, 1 warning in 0.90s =========================
+41
+📊 Coverage Summary:
+   Total Coverage: 41%
+   Status: ❌ LOW (<60%)
+
+41
+2025-08-11 13:46:23,total_validation_duration_sec,15
+2025-08-11 14:28:53,python_lint_duration_sec,1
+2025-08-11 14:28:53,schema_validation_duration_sec,0
+2025-08-11 14:28:53,migration_validation_duration_sec,0
+2025-08-11 14:29:03,unit_test_duration_sec,10
+2025-08-11 14:29:08,e2e_test_duration_sec,5
+2025-08-11 14:29:11,coverage_analysis_duration_sec,3
+2025-08-11 14:29:11,test_coverage_percent,============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0
+rootdir: /home/echrjan/repos/dnaresearch/api
+plugins: anyio-4.9.0, asyncio-1.0.0
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 46 items
+
+test_anchor_diff.py .....                                                [ 10%]
+test_docs.py ...                                                         [ 17%]
+test_evidence_accumulation.py ........                                   [ 34%]
+test_evidence_validation.py ......                                       [ 47%]
+test_health.py ...                                                       [ 54%]
+test_theory_execution.py ........                                        [ 71%]
+test_theory_forking.py .........                                         [ 91%]
+test_theory_validation.py ....                                           [100%]
+
+=============================== warnings summary ===============================
+../../../.local/lib/python3.10/site-packages/starlette/formparsers.py:12
+  /home/echrjan/.local/lib/python3.10/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 46 passed, 1 warning in 1.22s =========================
+44
+📊 Coverage Summary:
+   Total Coverage: 44%
+   Status: ❌ LOW (<60%)
+
+44
+2025-08-11 14:29:12,total_validation_duration_sec,20

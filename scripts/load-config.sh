@@ -29,6 +29,7 @@ LOG_LEVEL=${LOG_LEVEL:-INFO}
 STORE_METRICS=${STORE_METRICS:-true}
 
 # Load configuration from file if it exists
+CONFIG_FILE="${CONFIG_FILE:-$PROJECT_ROOT/.dnaresearch-dev-config}"
 if [[ -f "$CONFIG_FILE" ]]; then
     # Source the config file, ignoring comments and empty lines
     while IFS='=' read -r key value; do

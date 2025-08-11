@@ -117,7 +117,7 @@ class AnchorDiffStorage:
         # Calculate storage metrics
         original_size = len(vcf_data.encode())
         compressed_size = len(anchor.sequence_hash) + sum(
-            len(str(d.dict())) for d in differences
+            len(str(d.model_dump())) for d in differences
         )
         storage_mb, compression_ratio = self.calculate_storage_efficiency(
             original_size, compressed_size
