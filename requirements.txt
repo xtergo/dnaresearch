@@ -4,8 +4,8 @@ pydantic==2.7.4
 sqlalchemy==2.0.31
 psycopg2-binary==2.9.9
 redis==5.0.7
-minio==7.2.7
-python-multipart==0.0.9
+minio==7.2.11
+python-multipart==0.0.18
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 alembic==1.13.2
