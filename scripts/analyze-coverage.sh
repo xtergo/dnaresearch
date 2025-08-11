@@ -37,7 +37,19 @@ if [[ "$STORE_METRICS" == "true" ]]; then
     echo "$(date '+%Y-%m-%d %H:%M:%S'),coverage_percent,$COVERAGE_PERCENT" >> metrics/coverage-metrics.csv
 fi
 
-log "Coverage: ${COVERAGE_PERCENT}%"
+log "Coverage analysis completed: ${COVERAGE_PERCENT}%"
+
+# Print coverage summary to screen
+echo "📊 Coverage Summary:"
+echo "   Total Coverage: ${COVERAGE_PERCENT}%"
+if [[ $COVERAGE_PERCENT -ge 80 ]]; then
+    echo "   Status: ✅ GOOD (≥80%)"
+elif [[ $COVERAGE_PERCENT -ge 60 ]]; then
+    echo "   Status: ⚠️  MODERATE (60-79%)"
+else
+    echo "   Status: ❌ LOW (<60%)"
+fi
+echo
 
 # Output coverage percentage for use by calling script
 echo "$COVERAGE_PERCENT"

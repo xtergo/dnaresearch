@@ -160,7 +160,9 @@ if [[ "$ENABLE_COVERAGE_METRICS" == "true" ]]; then
     COVERAGE_DURATION=$(end_timer $COVERAGE_START)
     collect_metric "coverage_analysis_duration_sec" "$COVERAGE_DURATION"
     collect_metric "test_coverage_percent" "$COVERAGE_PERCENT"
-    log "INFO" "✅ Coverage analysis passed (${COVERAGE_PERCENT}%, ${COVERAGE_DURATION}s)"
+    
+    # Coverage summary is already printed by analyze-coverage.sh
+    log "INFO" "✅ Coverage analysis completed (${COVERAGE_DURATION}s)"
 fi
 
 # 8. Security Scan
