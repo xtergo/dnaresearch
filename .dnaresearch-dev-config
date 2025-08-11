@@ -1,0 +1,118 @@
+# DNA Research Platform Development Configuration
+# This file controls development environment behavior
+
+# Pre-commit verification (true/false)
+# If true, runs full verification pipeline before each commit
+# Default: true (if missing or file doesn't exist)
+verify_pre_commit=true
+
+# Environment type for pre-commit verification (docker/local)
+# docker: use Docker Compose for all tests
+# local: use local Python environment
+# Default: docker
+environment_type=docker
+
+# Coverage metrics (true/false)
+# If true, runs coverage analysis and logs metrics
+# Default: true
+enable_coverage_metrics=true
+
+# Coverage threshold enforcement (true/false)
+# If true, blocks commits below specified threshold
+# Default: false
+enforce_coverage_threshold=true
+
+# Coverage threshold percentage (0-100)
+# Minimum coverage required when enforcement is enabled
+# Default: 80
+coverage_threshold=80
+
+# Unit test enforcement (true/false)
+# If true, blocks commits if any unit tests fail
+# Default: true
+require_all_tests_pass=true
+
+# Test duration enforcement (true/false)
+# If true, blocks commits if test duration exceeds threshold
+# Default: true
+enforce_test_duration_threshold=true
+
+# Test duration threshold in seconds
+# Maximum allowed test duration when enforcement is enabled
+# Default: 30
+test_duration_threshold_sec=30
+
+# Environment cleanup after tests (true/false)
+# If true, cleans up Docker containers after tests
+# If false, keeps environment running for manual testing/debugging
+# Default: true
+cleanup_after_tests=true
+
+# Test types to run (comma-separated)
+# Options: unit,integration,e2e,all
+# Default: all (runs all available tests)
+test_types=all
+
+# Store test results (true/false)
+# If true, stores test results in test-results/ directory
+# Default: true
+store_test_results=true
+
+# Database linting enforcement (true/false)
+# If true, blocks commits if database schema files have linting errors
+# Default: true
+db_lint_enabled=true
+
+# Python linting enforcement (true/false)
+# If true, blocks commits if Python code has linting errors
+# Default: true
+python_lint_enabled=true
+
+# JSON schema validation (true/false)
+# If true, validates all JSON schemas before commit
+# Default: true
+schema_validation_enabled=true
+
+# API documentation validation (true/false)
+# If true, validates OpenAPI documentation is up to date
+# Default: true
+api_docs_validation_enabled=true
+
+# Docker build optimization (true/false)
+# If true, uses Docker layer caching for faster builds
+# Default: true
+docker_build_fast=true
+
+# Parallel test execution (true/false)
+# If true, runs tests in parallel where possible
+# Default: true
+parallel_tests=true
+
+# E2E test timeout in seconds
+# Maximum time to wait for E2E tests to complete
+# Default: 300 (5 minutes)
+e2e_timeout_sec=300
+
+# Database migration validation (true/false)
+# If true, validates database migrations before commit
+# Default: true
+validate_migrations=true
+
+# Security scan enforcement (true/false)
+# If true, runs security scans on dependencies
+# Default: false (can be slow)
+security_scan_enabled=false
+
+# Performance test enforcement (true/false)
+# If true, runs basic performance tests
+# Default: false
+performance_test_enabled=false
+
+# Log level for pre-commit hooks (DEBUG/INFO/WARN/ERROR)
+# Default: INFO
+log_level=INFO
+
+# Metrics storage (true/false)
+# If true, stores metrics in metrics/ directory
+# Default: true
+store_metrics=true

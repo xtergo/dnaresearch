@@ -1,0 +1,24 @@
+repos:
+  - repo: local
+    hooks:
+      - id: dna-research-validation
+        name: DNA Research Platform Validation
+        entry: scripts/pre-commit-validation.sh
+        language: script
+        files: ^(api/.*|schemas/.*|docker/.*|requirements\.txt)$
+        pass_filenames: false
+        stages: [commit]
+      
+      - id: schema-validation
+        name: JSON Schema Validation
+        entry: scripts/validate-schemas.sh
+        language: script
+        files: ^schemas/.*\.json$
+        pass_filenames: false
+        
+      - id: python-lint
+        name: Python Linting
+        entry: scripts/python-lint.sh
+        language: script
+        files: ^api/.*\.py$
+        pass_filenames: false
