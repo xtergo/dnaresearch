@@ -3,7 +3,7 @@ from fastapi import FastAPI, Body
 from fastapi.responses import JSONResponse
 from datetime import datetime
 from models import HealthResponse
-from validators import validate_theory
+from validators import validate_theory, validate_evidence
 from typing import List, Dict, Any
 
 app = FastAPI(
@@ -79,3 +79,27 @@ def validate_theory_endpoint(theory: Dict[str, Any] = Body(...)):
     """
     validated_theory = validate_theory(theory)
     return {"status": "valid", "theory": validated_theory}
+
+@app.post("/evidence/validate")
+def validate_evidence_endpoint(evidence: Dict[str, Any] = Body(...)):
+    """
+    Evidence Validation Endpoint
+    
+    Validate evidence JSON against the evidence schema.
+    
+    **Example Request:**
+    ```json
+    {
+        "type": "variant_hit",
+        "weight": 2.5,
+        "timestamp": "2025-01-11T10:30:00Z",
+        "data": {
+            "gene": "SHANK3",
+            "variant": "c.3679C>T",
+            "impact": "high"
+        }
+    }
+    ```
+    """
+    validated_evidence = validate_evidence(evidence)
+    return {"status": "valid", "evidence": validated_evidence}
