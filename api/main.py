@@ -5,10 +5,13 @@ from access_middleware import AccessControlMiddleware
 from cache_manager import CacheManager
 from collaboration_manager import CollaborationManager, ReactionType
 from consent_manager import ConsentManager
-from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, HTTPException, Query, Request
 from gene_search import GeneSearchEngine
 from models import HealthResponse
 from security_api import router as security_router
+from theory_creator import TheoryCreator
+from theory_manager import TheoryManager
+from validators import validate_theory
 
 app = FastAPI(
     title="DNA Research Platform API",
@@ -25,6 +28,10 @@ cache_manager = CacheManager()
 collaboration_manager = CollaborationManager()
 consent_manager = ConsentManager()
 access_control_manager = AccessControlManager(consent_manager)
+theory_creator = TheoryCreator()
+theory_manager = TheoryManager()
+# Link theory creator to theory manager for integration
+theory_manager.theory_creator = theory_creator
 
 # Add access control middleware
 app.add_middleware(
@@ -618,18 +625,258 @@ def create_theory(theory: dict = Body(...)):
     }
     ```
     """
-    # Basic validation
-    required_fields = ["id", "version", "scope", "criteria", "evidence_model"]
-    for field in required_fields:
-        if field not in theory:
+    try:
+        # Validate theory against JSON schema
+        validated_theory = validate_theory(theory)
+
+        # Create theory using theory creator
+        result = theory_creator.create_theory(validated_theory, "anonymous")
+
+        if result.status == "validation_failed":
             raise HTTPException(
-                status_code=400, detail=f"Missing required field: {field}"
+                status_code=400,
+                detail={
+                    "message": "Theory validation failed",
+                    "errors": result.validation_errors,
+                },
             )
 
-    # Return success response
-    return {
-        "status": "created",
-        "theory_id": theory["id"],
-        "version": theory["version"],
-        "created_at": datetime.utcnow().isoformat() + "Z",
+        # Invalidate theory listing cache
+        cache_manager.invalidate_pattern("theories_list")
+
+        return {
+            "status": result.status,
+            "theory_id": result.theory_id,
+            "version": result.version,
+            "created_at": result.created_at,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Theory creation failed: {str(e)}")
+
+
+@app.get("/theories")
+def list_theories(
+    scope: str = Query(None, description="Filter by theory scope"),
+    lifecycle: str = Query(None, description="Filter by lifecycle status"),
+    author: str = Query(None, description="Filter by author"),
+    search: str = Query(None, description="Search in title, ID, and tags"),
+    sort_by: str = Query("posterior", description="Sort field"),
+    sort_order: str = Query("desc", description="Sort order (asc/desc)"),
+    limit: int = Query(20, description="Maximum results"),
+    offset: int = Query(0, description="Pagination offset"),
+):
+    """
+    List Theories
+
+    Get a paginated list of theories with filtering and sorting options.
+
+    **Parameters:**
+    - scope: Filter by theory scope (autism, cancer, etc.)
+    - lifecycle: Filter by lifecycle status (draft, active, deprecated)
+    - author: Filter by theory author
+    - search: Search in theory title, ID, and tags
+    - sort_by: Sort field (posterior, evidence_count, created_at, updated_at, title)
+    - sort_order: Sort order (asc or desc)
+    - limit: Maximum number of results (default: 20)
+    - offset: Pagination offset (default: 0)
+
+    **Example Response:**
+    ```json
+    {
+        "theories": [
+            {
+                "id": "autism-theory-1",
+                "version": "1.2.0",
+                "title": "SHANK3 Variants in Autism Spectrum Disorders",
+                "scope": "autism",
+                "lifecycle": "active",
+                "author": "dr.smith",
+                "posterior": 0.75,
+                "support_class": "strong",
+                "evidence_count": 15,
+                "has_comments": true
+            }
+        ],
+        "total_count": 6,
+        "limit": 20,
+        "offset": 0,
+        "has_more": false
     }
+    ```
+    """
+    try:
+        # Check cache first
+        cache_key = f"theories_list_{scope}_{lifecycle}_{author}_{search}_{sort_by}_{sort_order}_{limit}_{offset}"
+        cached = cache_manager.get(cache_key)
+        if cached:
+            return cached
+
+        # Get theories from manager
+        result = theory_manager.list_theories(
+            scope=scope,
+            lifecycle=lifecycle,
+            author=author,
+            search=search,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            limit=limit,
+            offset=offset,
+        )
+
+        # Cache result
+        cache_manager.set(cache_key, result, 600)  # 10 minutes
+        return result
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list theories: {str(e)}"
+        )
+
+
+@app.get("/theories/template")
+def get_theory_template(scope: str = Query("autism", description="Theory scope")):
+    """
+    Get Theory Template
+
+    Get a template for creating a new theory in the specified scope.
+
+    **Parameters:**
+    - scope: Theory scope (autism, cancer, cardiovascular, neurological, metabolic)
+
+    **Example Response:**
+    ```json
+    {
+        "id": "",
+        "version": "1.0.0",
+        "scope": "autism",
+        "title": "New Autism Theory",
+        "criteria": {
+            "genes": ["SHANK3"],
+            "pathways": ["synaptic_transmission"],
+            "phenotypes": ["autism_spectrum_disorder"]
+        },
+        "evidence_model": {
+            "priors": 0.1,
+            "likelihood_weights": {
+                "variant_hit": 2.0,
+                "segregation": 1.5,
+                "pathway": 1.0
+            }
+        }
+    }
+    ```
+    """
+    try:
+        template = theory_creator.get_theory_template(scope)
+        return template
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get theory template: {str(e)}"
+        )
+
+
+@app.get("/theories/stats")
+def get_theory_stats():
+    """
+    Get Theory Statistics
+
+    Get overall statistics about theories in the platform.
+
+    **Example Response:**
+    ```json
+    {
+        "total_theories": 6,
+        "active_theories": 4,
+        "scope_distribution": {
+            "autism": 3,
+            "cancer": 1,
+            "neurological": 1,
+            "cardiovascular": 1
+        },
+        "average_posterior": 0.683,
+        "support_classes": {
+            "strong": 3,
+            "moderate": 2,
+            "weak": 1
+        }
+    }
+    ```
+    """
+    try:
+        # Check cache first
+        cache_key = "theory_stats"
+        cached = cache_manager.get(cache_key)
+        if cached:
+            return cached
+
+        stats = theory_manager.get_theory_stats()
+
+        # Cache result
+        cache_manager.set(cache_key, stats, 1800)  # 30 minutes
+        return stats
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get theory stats: {str(e)}"
+        )
+
+
+@app.get("/theories/{theory_id}")
+def get_theory_details(
+    theory_id: str, version: str = Query(None, description="Theory version")
+):
+    """
+    Get Theory Details
+
+    Get detailed information about a specific theory.
+
+    **Parameters:**
+    - theory_id: Theory identifier
+    - version: Theory version (optional, gets latest if not specified)
+
+    **Example Response:**
+    ```json
+    {
+        "id": "autism-theory-1",
+        "version": "1.2.0",
+        "title": "SHANK3 Variants in Autism Spectrum Disorders",
+        "scope": "autism",
+        "lifecycle": "active",
+        "author": "dr.smith",
+        "created_at": "2024-12-15T10:00:00Z",
+        "updated_at": "2025-01-10T14:30:00Z",
+        "evidence_count": 15,
+        "posterior": 0.75,
+        "support_class": "strong",
+        "tags": ["synaptic", "de-novo", "validated"],
+        "has_comments": true
+    }
+    ```
+    """
+    try:
+        # Check cache first
+        cache_key = f"theory_details_{theory_id}_{version or 'latest'}"
+        cached = cache_manager.get(cache_key)
+        if cached:
+            return cached
+
+        theory = theory_manager.get_theory_summary(theory_id, version)
+        if not theory:
+            raise HTTPException(
+                status_code=404, detail=f"Theory '{theory_id}' not found"
+            )
+
+        # Cache result
+        cache_manager.set(cache_key, theory, 1800)  # 30 minutes
+        return theory
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get theory details: {str(e)}"
+        )

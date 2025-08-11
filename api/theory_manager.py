@@ -157,6 +157,26 @@ class TheoryManager:
         # Start with all theories
         filtered_theories = self.theories.copy()
 
+        # Add created theories if theory_creator is available
+        if hasattr(self, "theory_creator") and self.theory_creator:
+            for theory_key, theory_data in self.theory_creator.created_theories.items():
+                created_theory = TheoryMetadata(
+                    id=theory_data["id"],
+                    version=theory_data["version"],
+                    title=theory_data.get("title", theory_data["id"]),
+                    scope=theory_data["scope"],
+                    lifecycle=theory_data.get("lifecycle", "draft"),
+                    author=theory_data.get("author", "anonymous"),
+                    created_at=theory_data.get("created_at", ""),
+                    updated_at=theory_data.get("updated_at", ""),
+                    evidence_count=0,
+                    posterior=0.5,
+                    support_class="weak",
+                    tags=theory_data.get("tags", []),
+                    has_comments=False,
+                )
+                filtered_theories.append(created_theory)
+
         # Apply filters
         if scope:
             filtered_theories = [t for t in filtered_theories if t.scope == scope]
@@ -221,6 +241,29 @@ class TheoryManager:
         self, theory_id: str, version: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """Get theory summary by ID"""
+        # Check created theories first if theory_creator is available
+        if hasattr(self, "theory_creator") and self.theory_creator:
+            created_theory = self.theory_creator.get_theory(
+                theory_id, version or "1.0.0"
+            )
+            if created_theory:
+                return {
+                    "id": created_theory["id"],
+                    "version": created_theory["version"],
+                    "title": created_theory.get("title", created_theory["id"]),
+                    "scope": created_theory["scope"],
+                    "lifecycle": created_theory.get("lifecycle", "draft"),
+                    "author": created_theory.get("author", "anonymous"),
+                    "created_at": created_theory.get("created_at", ""),
+                    "updated_at": created_theory.get("updated_at", ""),
+                    "evidence_count": 0,
+                    "posterior": 0.5,
+                    "support_class": "weak",
+                    "tags": created_theory.get("tags", []),
+                    "has_comments": False,
+                }
+
+        # Check mock theories
         for theory in self.theories:
             if theory.id == theory_id and (
                 version is None or theory.version == version
@@ -230,15 +273,37 @@ class TheoryManager:
 
     def get_theory_stats(self) -> Dict[str, Any]:
         """Get overall theory statistics"""
-        total_theories = len(self.theories)
-        active_theories = len([t for t in self.theories if t.lifecycle == "active"])
+        all_theories = self.theories.copy()
+
+        # Add created theories if theory_creator is available
+        if hasattr(self, "theory_creator") and self.theory_creator:
+            for theory_key, theory_data in self.theory_creator.created_theories.items():
+                created_theory = TheoryMetadata(
+                    id=theory_data["id"],
+                    version=theory_data["version"],
+                    title=theory_data.get("title", theory_data["id"]),
+                    scope=theory_data["scope"],
+                    lifecycle=theory_data.get("lifecycle", "draft"),
+                    author=theory_data.get("author", "anonymous"),
+                    created_at=theory_data.get("created_at", ""),
+                    updated_at=theory_data.get("updated_at", ""),
+                    evidence_count=0,
+                    posterior=0.5,
+                    support_class="weak",
+                    tags=theory_data.get("tags", []),
+                    has_comments=False,
+                )
+                all_theories.append(created_theory)
+
+        total_theories = len(all_theories)
+        active_theories = len([t for t in all_theories if t.lifecycle == "active"])
 
         scope_counts = {}
-        for theory in self.theories:
+        for theory in all_theories:
             scope_counts[theory.scope] = scope_counts.get(theory.scope, 0) + 1
 
         avg_posterior = (
-            sum(t.posterior for t in self.theories) / total_theories
+            sum(t.posterior for t in all_theories) / total_theories
             if total_theories > 0
             else 0
         )
@@ -249,13 +314,11 @@ class TheoryManager:
             "scope_distribution": scope_counts,
             "average_posterior": round(avg_posterior, 3),
             "support_classes": {
-                "strong": len(
-                    [t for t in self.theories if t.support_class == "strong"]
-                ),
+                "strong": len([t for t in all_theories if t.support_class == "strong"]),
                 "moderate": len(
-                    [t for t in self.theories if t.support_class == "moderate"]
+                    [t for t in all_theories if t.support_class == "moderate"]
                 ),
-                "weak": len([t for t in self.theories if t.support_class == "weak"]),
+                "weak": len([t for t in all_theories if t.support_class == "weak"]),
             },
         }
 
