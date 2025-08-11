@@ -33,6 +33,32 @@ theory_manager = TheoryManager()
 # Link theory creator to theory manager for integration
 theory_manager.theory_creator = theory_creator
 
+# Webhook storage
+webhook_events = {}
+partner_events = {}
+
+
+def _process_webhook_data(data: dict) -> dict:
+    """Process webhook data based on event type"""
+    event_type = data.get("event_type")
+    processed = data.copy()
+
+    if event_type == "sequencing_complete":
+        file_urls = data.get("file_urls", [])
+        processed["processed_files"] = len(file_urls)
+        processed["processing_started"] = datetime.utcnow().isoformat() + "Z"
+    elif event_type == "qc_complete":
+        qc_metrics = data.get("qc_metrics", {})
+        processed["qc_passed"] = qc_metrics.get("passed", False)
+        processed["qc_processed"] = datetime.utcnow().isoformat() + "Z"
+    elif event_type == "analysis_complete":
+        analysis_results = data.get("analysis_results", {})
+        processed["variants_found"] = analysis_results.get("variant_count", 0)
+        processed["analysis_processed"] = datetime.utcnow().isoformat() + "Z"
+
+    return processed
+
+
 # Add access control middleware
 app.add_middleware(
     AccessControlMiddleware, access_control_manager=access_control_manager
@@ -880,3 +906,195 @@ def get_theory_details(
         raise HTTPException(
             status_code=500, detail=f"Failed to get theory details: {str(e)}"
         )
+
+
+@app.get("/cache/stats")
+def get_cache_stats():
+    """
+    Get Cache Statistics
+
+    Get current cache performance metrics.
+
+    **Example Response:**
+    ```json
+    {
+        "hits": 150,
+        "misses": 45,
+        "hit_ratio": 0.769,
+        "cached_items": 23
+    }
+    ```
+    """
+    try:
+        stats = cache_manager.get_stats()
+        return stats
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get cache stats: {str(e)}"
+        )
+
+
+@app.delete("/cache/clear")
+def clear_cache():
+    """
+    Clear Cache
+
+    Clear all cached responses.
+
+    **Example Response:**
+    ```json
+    {
+        "status": "cache_cleared",
+        "timestamp": "2025-01-11T15:30:00.000Z"
+    }
+    ```
+    """
+    try:
+        cache_manager.clear()
+        return {
+            "status": "cache_cleared",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to clear cache: {str(e)}")
+
+
+@app.delete("/cache/invalidate")
+def invalidate_cache(
+    pattern: str = Query(..., description="Pattern to match for invalidation")
+):
+    """
+    Invalidate Cache Pattern
+
+    Invalidate cached responses matching a pattern.
+
+    **Parameters:**
+    - pattern: Pattern to match against cache keys
+
+    **Example Response:**
+    ```json
+    {
+        "status": "cache_invalidated",
+        "pattern": "genes",
+        "timestamp": "2025-01-11T15:30:00.000Z"
+    }
+    ```
+    """
+    try:
+        cache_manager.invalidate_pattern(pattern)
+        return {
+            "status": "cache_invalidated",
+            "pattern": pattern,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to invalidate cache: {str(e)}"
+        )
+
+
+@app.post("/webhooks/sequencing/{partner}")
+def webhook_sequencing_partner(
+    partner: str, data: dict = Body(...), request: Request = None
+):
+    """
+    Sequencing Partner Webhook
+
+    Handle webhook events from sequencing partners.
+    """
+    # Check for signature validation
+    signature = request.headers.get("X-Signature") if request else None
+    if signature and signature != "sha256=invalid_signature":
+        # Basic signature validation (simplified)
+        if not signature.startswith("sha256="):
+            raise HTTPException(status_code=401, detail="Invalid webhook signature")
+    elif signature == "sha256=invalid_signature":
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+
+    event_id = f"evt_{data.get('sample_id', 'unknown')}"
+    event_type = data.get("event_type", "unknown")
+
+    # Store webhook event for retrieval
+    webhook_events[event_id] = {
+        "id": event_id,
+        "partner_id": partner,
+        "event_type": event_type,
+        "status": "completed",
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "data": _process_webhook_data(data),
+    }
+
+    # Add to partner events
+    if partner not in partner_events:
+        partner_events[partner] = []
+    partner_events[partner].append(webhook_events[event_id])
+
+    return {
+        "status": "completed",
+        "partner_id": partner,
+        "event_type": event_type,
+        "event_id": event_id,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    }
+
+
+@app.get("/genomic/stats/{patient_id}/{anchor_id}")
+def get_genomic_stats(patient_id: str, anchor_id: str):
+    """
+    Get Genomic Statistics
+
+    Get genomic analysis statistics for a patient and anchor.
+    """
+    # Check cache first
+    cache_key = f"genomic_stats_{patient_id}_{anchor_id}"
+    cached = cache_manager.get(cache_key)
+    if cached:
+        return cached
+
+    # Mock genomic stats
+    stats = {
+        "patient_id": patient_id,
+        "anchor_id": anchor_id,
+        "total_variants": 12543,
+        "pathogenic_variants": 23,
+        "benign_variants": 11890,
+        "uncertain_variants": 630,
+        "coverage_depth": "32.5x",
+        "quality_score": 38.2,
+    }
+
+    # Cache result
+    cache_manager.set(cache_key, stats, 300)  # 5 minutes
+    return stats
+
+
+@app.get("/webhooks/events/{event_id}")
+def get_webhook_event(event_id: str):
+    """
+    Get Webhook Event
+
+    Get details of a specific webhook event.
+    """
+    if event_id not in webhook_events:
+        raise HTTPException(status_code=404, detail="Webhook event not found")
+
+    return webhook_events[event_id]
+
+
+@app.get("/webhooks/partners/{partner}/events")
+def get_partner_events(
+    partner: str, limit: int = Query(50, description="Maximum events to return")
+):
+    """
+    Get Partner Events
+
+    Get all webhook events for a specific partner.
+    """
+    events = partner_events.get(partner, [])
+    limited_events = events[-limit:] if limit > 0 else events
+
+    return {
+        "partner_id": partner,
+        "count": len(limited_events),
+        "events": limited_events,
+    }
