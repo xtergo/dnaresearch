@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dnaresearch.org/schemas/evidence.json",
+  "title": "Evidence Schema",
+  "description": "JSON schema for genomic evidence with different types and weights",
+  "type": "object",
+  "required": ["type", "weight", "timestamp", "data"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["variant_hit", "segregation", "pathway"],
+      "description": "Type of genomic evidence"
+    },
+    "weight": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Evidence weight/strength (0-10)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when evidence was collected"
+    },
+    "data": {
+      "type": "object",
+      "description": "Evidence-specific data",
+      "oneOf": [
+        {
+          "properties": {
+            "gene": {"type": "string"},
+            "variant": {"type": "string"},
+            "impact": {"type": "string", "enum": ["high", "moderate", "low", "modifier"]}
+          },
+          "required": ["gene", "variant", "impact"]
+        },
+        {
+          "properties": {
+            "family_id": {"type": "string"},
+            "affected_carriers": {"type": "integer", "minimum": 0},
+            "unaffected_carriers": {"type": "integer", "minimum": 0},
+            "segregation_score": {"type": "number", "minimum": 0, "maximum": 1}
+          },
+          "required": ["family_id", "affected_carriers", "unaffected_carriers"]
+        },
+        {
+          "properties": {
+            "pathway_name": {"type": "string"},
+            "genes_in_pathway": {"type": "array", "items": {"type": "string"}},
+            "enrichment_score": {"type": "number", "minimum": 0}
+          },
+          "required": ["pathway_name", "genes_in_pathway"]
+        }
+      ]
+    },
+    "source": {
+      "type": "string",
+      "description": "Source of evidence (lab, database, etc.)"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence in evidence quality (0-1)"
+    }
+  }
+}
