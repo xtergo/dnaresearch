@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 from anchor_diff import AnchorDiffStorage
 from evidence_accumulator import EvidenceAccumulator
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, Header
 from fastapi.responses import JSONResponse
 from gene_search import GeneSearchEngine
 from models import GenomicDataRequest, GenomicDataResponse, HealthResponse
@@ -11,6 +11,7 @@ from sequence_materializer import SequenceMaterializer
 from theory_engine import TheoryExecutionEngine
 from theory_forker import TheoryForker
 from validators import validate_evidence, validate_theory
+from webhook_handler import WebhookHandler
 
 app = FastAPI(
     title="DNA Research Platform API",
@@ -21,13 +22,14 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Initialize storage, materializer, theory engine, evidence accumulator, forker, and gene search
+# Initialize storage, materializer, theory engine, evidence accumulator, forker, gene search, and webhook handler
 storage = AnchorDiffStorage()
 materializer = SequenceMaterializer(storage)
 theory_engine = TheoryExecutionEngine()
 evidence_accumulator = EvidenceAccumulator()
 theory_forker = TheoryForker()
 gene_search = GeneSearchEngine()
+webhook_handler = WebhookHandler()
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -105,11 +107,7 @@ def genes_search(query: str, limit: int = 10):
     ```
     """
     results = gene_search.search(query, limit)
-    return {
-        "query": query,
-        "results": results,
-        "count": len(results)
-    }
+    return {"query": query, "results": results, "count": len(results)}
 
 
 @app.get("/genes/{symbol}")
@@ -139,6 +137,162 @@ def get_gene_details(symbol: str):
     if not gene:
         raise HTTPException(status_code=404, detail=f"Gene '{symbol}' not found")
     return gene
+
+
+@app.post("/webhooks/sequencing/{partner_id}")
+def receive_webhook(
+    partner_id: str,
+    event_data: Dict[str, Any] = Body(...),
+    x_signature: str = Header(None)
+):
+    """
+    Sequencing Partner Webhook Endpoint
+
+    Receive webhooks from sequencing partners for data processing updates.
+
+    **Parameters:**
+    - partner_id: Partner identifier (illumina, oxford, pacbio)
+    - event_data: Webhook payload data
+    - x_signature: Webhook signature for validation (optional)
+
+    **Example Request:**
+    ```json
+    {
+        "event_type": "sequencing_complete",
+        "sample_id": "sample_001",
+        "run_id": "run_20250111_001",
+        "file_urls": [
+            "https://partner.com/files/sample_001_R1.fastq.gz",
+            "https://partner.com/files/sample_001_R2.fastq.gz"
+        ],
+        "metadata": {
+            "instrument": "NovaSeq 6000",
+            "run_date": "2025-01-11T10:00:00Z"
+        }
+    }
+    ```
+
+    **Example Response:**
+    ```json
+    {
+        "status": "received",
+        "event_id": "illumina_20250111_100000_123456",
+        "partner_id": "illumina",
+        "event_type": "sequencing_complete",
+        "timestamp": "2025-01-11T10:00:00.000Z"
+    }
+    ```
+    """
+    try:
+        # Validate signature if provided
+        if x_signature:
+            import json
+            payload = json.dumps(event_data, sort_keys=True)
+            if not webhook_handler.validate_signature(payload, x_signature, partner_id):
+                raise HTTPException(status_code=401, detail="Invalid webhook signature")
+        
+        # Process webhook
+        event = webhook_handler.process_webhook(partner_id, event_data, x_signature)
+        
+        return {
+            "status": event.status.value,
+            "event_id": event.id,
+            "partner_id": event.partner_id,
+            "event_type": event.event_type,
+            "timestamp": event.timestamp
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Webhook processing failed: {str(e)}")
+
+
+@app.get("/webhooks/events/{event_id}")
+def get_webhook_event(event_id: str):
+    """
+    Get Webhook Event Details
+
+    Retrieve details of a specific webhook event.
+
+    **Parameters:**
+    - event_id: Webhook event identifier
+
+    **Example Response:**
+    ```json
+    {
+        "id": "illumina_20250111_100000_123456",
+        "partner_id": "illumina",
+        "event_type": "sequencing_complete",
+        "status": "completed",
+        "timestamp": "2025-01-11T10:00:00.000Z",
+        "data": {
+            "sample_id": "sample_001",
+            "processed_files": 2
+        }
+    }
+    ```
+    """
+    event = webhook_handler.get_event(event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
+    
+    return {
+        "id": event.id,
+        "partner_id": event.partner_id,
+        "event_type": event.event_type,
+        "status": event.status.value,
+        "timestamp": event.timestamp,
+        "data": event.data
+    }
+
+
+@app.get("/webhooks/partners/{partner_id}/events")
+def get_partner_events(partner_id: str, limit: int = 50):
+    """
+    Get Partner Webhook Events
+
+    Retrieve all webhook events for a specific partner.
+
+    **Parameters:**
+    - partner_id: Partner identifier
+    - limit: Maximum number of events to return (default: 50)
+
+    **Example Response:**
+    ```json
+    {
+        "partner_id": "illumina",
+        "events": [
+            {
+                "id": "illumina_20250111_100000_123456",
+                "event_type": "sequencing_complete",
+                "status": "completed",
+                "timestamp": "2025-01-11T10:00:00.000Z"
+            }
+        ],
+        "count": 1
+    }
+    ```
+    """
+    events = webhook_handler.get_partner_events(partner_id)
+    
+    # Limit and format results
+    limited_events = events[:limit]
+    formatted_events = [
+        {
+            "id": event.id,
+            "event_type": event.event_type,
+            "status": event.status.value,
+            "timestamp": event.timestamp
+        }
+        for event in limited_events
+    ]
+    
+    return {
+        "partner_id": partner_id,
+        "events": formatted_events,
+        "count": len(formatted_events)
+    }
 
 
 @app.post("/theories/validate")
