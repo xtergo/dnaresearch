@@ -3,7 +3,8 @@ from fastapi import FastAPI, Body
 from fastapi.responses import JSONResponse
 from datetime import datetime
 from models import HealthResponse
-from typing import List
+from validators import validate_theory
+from typing import List, Dict, Any
 
 app = FastAPI(
     title="DNA Research Platform API",
@@ -57,3 +58,24 @@ def genes_search(query: str):
     ```
     """
     return {"query": query, "hits": ["SHANK3","NRXN1","SYNGAP1"]}
+
+@app.post("/theories/validate")
+def validate_theory_endpoint(theory: Dict[str, Any] = Body(...)):
+    """
+    Theory Validation Endpoint
+    
+    Validate theory JSON against the theory schema.
+    
+    **Example Request:**
+    ```json
+    {
+        "id": "autism-theory-1",
+        "version": "1.0.0",
+        "scope": "autism",
+        "criteria": {"genes": ["SHANK3"]},
+        "evidence_model": {"priors": 0.1, "likelihood_weights": {}}
+    }
+    ```
+    """
+    validated_theory = validate_theory(theory)
+    return {"status": "valid", "theory": validated_theory}
