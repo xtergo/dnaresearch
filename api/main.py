@@ -5,6 +5,7 @@ from anchor_diff import AnchorDiffStorage
 from fastapi import Body, FastAPI
 from fastapi.responses import JSONResponse
 from models import GenomicDataRequest, GenomicDataResponse, HealthResponse
+from sequence_materializer import SequenceMaterializer
 from validators import validate_evidence, validate_theory
 
 app = FastAPI(
@@ -15,8 +16,9 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Initialize storage
+# Initialize storage and materializer
 storage = AnchorDiffStorage()
+materializer = SequenceMaterializer(storage)
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -41,6 +43,27 @@ def health():
     return HealthResponse(
         status="ok", timestamp=datetime.utcnow().isoformat() + "Z", version="1.0.0"
     )
+
+
+@app.get("/genomic/stats/{individual_id}/{anchor_id}")
+def get_materialization_stats(individual_id: str, anchor_id: str):
+    """
+    Get Materialization Statistics
+    
+    Get statistics about sequence materialization without full reconstruction.
+    
+    **Example Response:**
+    ```json
+    {
+        "individual_id": "patient-001",
+        "total_variants": 3,
+        "sequence_length": 400,
+        "materialization_efficiency": 0.0075
+    }
+    ```
+    """
+    stats = materializer.get_materialization_stats(individual_id, anchor_id)
+    return stats
 
 
 @app.get("/genes/search")
@@ -134,3 +157,43 @@ def store_genomic_data(data: GenomicDataRequest):
     )
 
     return GenomicDataResponse(**result)
+
+
+@app.get("/genomic/materialize/{individual_id}/{anchor_id}")
+def materialize_sequence(individual_id: str, anchor_id: str):
+    """
+    Materialize Genomic Sequence
+    
+    Reconstruct full genomic sequence from anchor+diff storage.
+    
+    **Parameters:**
+    - individual_id: Individual identifier
+    - anchor_id: Anchor sequence identifier
+    
+    **Example Response:**
+    ```json
+    {
+        "individual_id": "patient-001",
+        "sequence": "ATCGATCG...",
+        "stats": {
+            "total_variants": 3,
+            "sequence_length": 400
+        }
+    }
+    ```
+    """
+    try:
+        sequence = materializer.materialize_sequence(individual_id, anchor_id)
+        stats = materializer.get_materialization_stats(individual_id, anchor_id)
+        
+        return {
+            "individual_id": individual_id,
+            "anchor_id": anchor_id,
+            "sequence": sequence,
+            "stats": stats
+        }
+    except ValueError as e:
+        return JSONResponse(
+            status_code=404,
+            content={"error": str(e)}
+        )
