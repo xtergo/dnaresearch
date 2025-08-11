@@ -12,6 +12,8 @@ from theory_engine import TheoryExecutionEngine
 from theory_forker import TheoryForker
 from validators import validate_evidence, validate_theory
 from webhook_handler import WebhookHandler
+from cache_manager import CacheManager
+from cache_manager import CacheManager
 
 app = FastAPI(
     title="DNA Research Platform API",
@@ -22,7 +24,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Initialize storage, materializer, theory engine, evidence accumulator, forker, gene search, and webhook handler
+# Initialize storage, materializer, theory engine, evidence accumulator, forker, gene search, webhook handler, and cache
 storage = AnchorDiffStorage()
 materializer = SequenceMaterializer(storage)
 theory_engine = TheoryExecutionEngine()
@@ -30,6 +32,7 @@ evidence_accumulator = EvidenceAccumulator()
 theory_forker = TheoryForker()
 gene_search = GeneSearchEngine()
 webhook_handler = WebhookHandler()
+cache_manager = CacheManager()
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -73,7 +76,17 @@ def get_materialization_stats(individual_id: str, anchor_id: str):
     }
     ```
     """
+    # Check cache first
+    cache_key = f"genomic_stats_{individual_id}_{anchor_id}"
+    cached = cache_manager.get(cache_key)
+    if cached:
+        return cached
+    
+    # Get stats
     stats = materializer.get_materialization_stats(individual_id, anchor_id)
+    
+    # Cache result
+    cache_manager.set(cache_key, stats, 300)  # 5 minutes
     return stats
 
 
@@ -106,8 +119,19 @@ def genes_search(query: str, limit: int = 10):
     }
     ```
     """
+    # Check cache first
+    cache_key = f"genes_search_{query}_{limit}"
+    cached = cache_manager.get(cache_key)
+    if cached:
+        return cached
+    
+    # Execute search
     results = gene_search.search(query, limit)
-    return {"query": query, "results": results, "count": len(results)}
+    response = {"query": query, "results": results, "count": len(results)}
+    
+    # Cache result
+    cache_manager.set(cache_key, response, 3600)  # 1 hour
+    return response
 
 
 @app.get("/genes/{symbol}")
@@ -136,6 +160,10 @@ def get_gene_details(symbol: str):
     gene = gene_search.get_gene_by_symbol(symbol)
     if not gene:
         raise HTTPException(status_code=404, detail=f"Gene '{symbol}' not found")
+    
+    # Cache the result
+    cache_key = f"gene_details_{symbol}"
+    cache_manager.set(cache_key, gene, 7200)  # 2 hours
     return gene
 
 
@@ -292,6 +320,75 @@ def get_partner_events(partner_id: str, limit: int = 50):
         "partner_id": partner_id,
         "events": formatted_events,
         "count": len(formatted_events)
+    }
+
+
+@app.get("/cache/stats")
+def get_cache_stats():
+    """
+    Get Cache Statistics
+
+    Retrieve current cache performance metrics.
+
+    **Example Response:**
+    ```json
+    {
+        "hits": 150,
+        "misses": 50,
+        "hit_ratio": 0.75,
+        "cached_items": 25
+    }
+    ```
+    """
+    return cache_manager.get_stats()
+
+
+@app.delete("/cache/clear")
+def clear_cache():
+    """
+    Clear All Cache
+
+    Clear all cached responses.
+
+    **Example Response:**
+    ```json
+    {
+        "status": "cache_cleared",
+        "timestamp": "2025-01-11T10:00:00.000Z"
+    }
+    ```
+    """
+    cache_manager.clear()
+    return {
+        "status": "cache_cleared",
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    }
+
+
+@app.delete("/cache/invalidate")
+def invalidate_cache_pattern(pattern: str):
+    """
+    Invalidate Cache Pattern
+
+    Invalidate cached responses matching a pattern.
+
+    **Parameters:**
+    - pattern: Pattern to match for cache invalidation
+
+    **Example Response:**
+    ```json
+    {
+        "status": "cache_invalidated",
+        "pattern": "genes",
+        "timestamp": "2025-01-11T10:00:00.000Z"
+    }
+    ```
+    """
+    cache_manager.invalidate_pattern(pattern)
+    return {
+        "status": "cache_invalidated",
+        "pattern": pattern,
+        "timestamp": datetime.utcnow().isoformat() + "Z"
     }
 
 
