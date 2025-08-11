@@ -1,21 +1,25 @@
-from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
+
+from pydantic import BaseModel
+
 
 class HealthResponse(BaseModel):
     status: str
     timestamp: str
     version: str
 
-class Anchor(BaseModel):
+
+class AnchorSequence(BaseModel):
     id: str
     sequence_hash: str
-    reference_genome: str
+    reference_genome: str = "GRCh38"
     quality_score: float
-    usage_count: int
+    usage_count: int = 0
     created_at: datetime
-    
-class GenomicDiff(BaseModel):
+
+
+class GenomicDifference(BaseModel):
     id: str
     anchor_id: str
     individual_id: str
@@ -25,9 +29,16 @@ class GenomicDiff(BaseModel):
     quality_score: float
     created_at: datetime
 
-class GenomicData(BaseModel):
+
+class GenomicDataRequest(BaseModel):
+    individual_id: str
+    vcf_data: str
+    reference_genome: str = "GRCh38"
+
+
+class GenomicDataResponse(BaseModel):
     individual_id: str
     anchor_id: str
-    diffs: List[GenomicDiff]
     total_variants: int
     storage_size_mb: float
+    compression_ratio: float
