@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+      target: development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../api:/app
+      - ../schemas:/app/schemas
+    environment:
+      - DATABASE_URL=postgresql://dev_user:dev_pass@postgres:5432/dnaresearch_dev
+      - REDIS_URL=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=dev_access_key
+      - MINIO_SECRET_KEY=dev_secret_key
+      - API_SECRET_KEY=dev_secret_key_change_in_production
+      - DEBUG=true
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - dnaresearch_dev
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=dev_user
+      - POSTGRES_PASSWORD=dev_pass
+      - POSTGRES_DB=dnaresearch_dev
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./init-scripts/init-dev-db.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init-scripts/test-data.sql:/docker-entrypoint-initdb.d/test-data.sql
+    networks:
+      - dnaresearch_dev
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - dnaresearch_dev
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ACCESS_KEY=dev_access_key
+      - MINIO_SECRET_KEY=dev_secret_key
+    volumes:
+      - minio_dev_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - dnaresearch_dev
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+  minio_dev_data:
+
+networks:
+  dnaresearch_dev:
+    driver: bridge

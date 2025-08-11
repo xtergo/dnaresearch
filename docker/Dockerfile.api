@@ -1,8 +1,57 @@
+# Multi-stage Dockerfile for API service
 
-FROM python:3.11-slim
+# Base stage with common dependencies
+FROM python:3.11-slim as base
+
 WORKDIR /app
-COPY api/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
-COPY api /app/api
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY api/ .
+COPY schemas/ ./schemas/
+
+# Development stage
+FROM base as development
+
+# Install development dependencies
+RUN pip install --no-cache-dir pytest pytest-cov pytest-asyncio
+
+# Expose port
 EXPOSE 8000
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# Default command (can be overridden)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# Testing stage
+FROM development as testing
+
+# Copy test files
+COPY api/test_*.py ./
+
+# Run tests by default
+CMD ["pytest", "-v", "--cov=.", "--cov-report=term-missing"]
+
+# Production stage
+FROM base as production
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash app
+USER app
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Production command
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

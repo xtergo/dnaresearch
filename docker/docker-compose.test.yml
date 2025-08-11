@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+      target: testing
+    environment:
+      - DATABASE_URL=postgresql://test_user:test_pass@postgres_test:5432/dnaresearch_test
+      - REDIS_URL=redis://redis_test:6379/1
+      - API_SECRET_KEY=test_secret_key
+      - DEBUG=true
+      - TESTING=true
+    depends_on:
+      - postgres_test
+      - redis_test
+    command: pytest -v --cov=. --cov-report=term-missing
+    networks:
+      - dnaresearch_test
+
+  postgres_test:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_pass
+      - POSTGRES_DB=dnaresearch_test
+    volumes:
+      - ./init-scripts/init-test-db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - dnaresearch_test
+
+  redis_test:
+    image: redis:7-alpine
+    networks:
+      - dnaresearch_test
+
+networks:
+  dnaresearch_test:
+    driver: bridge
