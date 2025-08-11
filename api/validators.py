@@ -2,6 +2,7 @@ import json
 import jsonschema
 from fastapi import HTTPException
 from typing import Dict, Any
+from version_utils import validate_semver
 
 def load_schema(schema_name: str) -> Dict[str, Any]:
     """Load JSON schema from schemas directory"""
@@ -16,7 +17,17 @@ def validate_theory(theory_data: Dict[str, Any]) -> Dict[str, Any]:
     schema = load_schema("theory")
     
     try:
+        # Validate against JSON schema
         jsonschema.validate(theory_data, schema)
+        
+        # Additional semantic version validation
+        if "version" in theory_data:
+            if not validate_semver(theory_data["version"]):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid semantic version format: {theory_data['version']}"
+                )
+        
         return theory_data
     except jsonschema.ValidationError as e:
         raise HTTPException(
