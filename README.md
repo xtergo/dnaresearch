@@ -93,14 +93,12 @@ This platform is built with **privacy by design**:
 - Immutable audit trails
 - Right-to-be-forgotten support
 
-## 💡 Innovation & IP
+## 💡 Innovation
 
-This project contains novel approaches that may be patentable:
+This project contains novel approaches for genomic research:
 - Multi-level anchored differentials for genomic storage
 - Consent-aware genomic access via blockchain
 - Iterative hypothesis testing engine (theories-as-code)
-
-See [technical blueprint section 12](docs/architecture/technical-blueprint.md#12-ip-strategy-patentable-modules) for details.
 
 ## 🤝 Contributing
 

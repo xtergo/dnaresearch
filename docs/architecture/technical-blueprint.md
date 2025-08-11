@@ -2,7 +2,7 @@
 # DNA Research Platform – Full Vision & Implementation Blueprint
 _Generated: 2025-08-11 06:48:25Z UTC_
 
-> This document consolidates everything we planned in this chat: JSON‑first schemas, theory engine, theory dashboard, anchor/diff storage, gene lookup & visualization, sequencing‑partner integration, blockchain consent/audit, privacy & governance, costs, funding, IP/patents & licensing, and a pragmatic roadmap. It is structured so you can hand it to engineers and start building immediately.
+> This document consolidates everything we planned in this chat: JSON‑first schemas, theory engine, theory dashboard, anchor/diff storage, gene lookup & visualization, sequencing‑partner integration, blockchain consent/audit, privacy & governance, costs, funding, and a pragmatic roadmap. It is structured so you can hand it to engineers and start building immediately.
 
 ---
 
@@ -149,24 +149,11 @@ RBAC/ABAC + OPA/Rego policies; PII isolated in a vault; tokenization at app laye
 - **Grants**: national (e.g., Vetenskapsrådet, Vinnova) and EU (Horizon), foundations (Wallenberg, Wellcome).  
 - **Partnerships**: universities/biobanks; cloud credits (nonprofit programs).  
 - **Crowdfunding & memberships** for public engagement.  
-- **Patent licensing** for novel methods (see IP strategy).
+
 
 ---
 
-## 12) IP Strategy (Patentable Modules)
 
-**P1 – Multi‑Level Anchored Differentials for Genomic Storage**  
-Claims: multi‑anchor deltas; automatic anchor selection; rebase optimization bounding query latency.
-
-**P2 – Consent‑Aware Genomic Access via Permissioned Blockchain**  
-Claims: consent/policy hashes on‑chain; pre‑execution consent gating; cryptographically linked audit trail.
-
-**P3 – Iterative Hypothesis Testing Engine (Theories‑as‑Code)**  
-Claims: JSON theory spec; automatic posterior updates; forkable theories with evidence scoring.
-
-Filing path: prior‑art → provisional → PCT in 12 months; co‑finance with partners/grants.
-
----
 
 ## 13) Roadmap
 

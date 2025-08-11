@@ -51,4 +51,4 @@ This platform handles sensitive genomic data. All contributions must:
 - Maintain audit trails
 
 ## License
-This project aims to be open source while protecting novel IP through strategic patenting.
+This project is open source and welcomes community contributions.
