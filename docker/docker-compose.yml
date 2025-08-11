@@ -1,0 +1,14 @@
+
+version: "3.9"
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    ports: ["8000:8000"]
+  portal:
+    build:
+      context: ..
+    dockerfile: docker/Dockerfile.portal
+    ports: ["8080:80"]
+    depends_on: [api]
