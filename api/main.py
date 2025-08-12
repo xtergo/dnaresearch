@@ -1,4 +1,4 @@
-# DNA Research Platform API - Test pre-commit hook
+# DNA Research Platform API - Pre-commit hook working!
 from datetime import datetime
 from typing import List
 
