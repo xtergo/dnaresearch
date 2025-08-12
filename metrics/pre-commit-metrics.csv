@@ -732,3 +732,122 @@ test_performance.py:246
 71
 2025-08-12 12:06:03,security_scan_duration_sec,0
 2025-08-12 12:06:04,total_validation_duration_sec,90
+2025-08-12 12:10:20,python_lint_duration_sec,2
+2025-08-12 12:10:20,schema_validation_duration_sec,0
+2025-08-12 12:10:20,migration_validation_duration_sec,0
+2025-08-12 12:11:20,unit_test_duration_sec,60
+2025-08-12 12:11:48,coverage_analysis_duration_sec,28
+2025-08-12 12:11:48,test_coverage_percent,============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0
+rootdir: /home/echrjan/repos/dnaresearch/api
+plugins: anyio-4.9.0, asyncio-1.0.0
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 359 items
+
+test_access_control.py ..........                                        [  2%]
+test_access_middleware.py ........                                       [  5%]
+test_anchor_diff.py .....                                                [  6%]
+test_caching.py ............                                             [  9%]
+test_collaboration.py ...............                                    [ 13%]
+test_consent_api.py .................                                    [ 18%]
+test_consent_management.py ...................                           [ 23%]
+test_docs.py ...                                                         [ 24%]
+test_evidence_accumulation.py ........                                   [ 27%]
+test_evidence_api.py ..............                                      [ 30%]
+test_evidence_validation.py ......                                       [ 32%]
+test_file_upload.py ...........................                          [ 40%]
+test_gdpr_api_enhanced.py .............                                  [ 43%]
+test_gdpr_compliance.py ..........                                       [ 46%]
+test_gdpr_enhanced.py .............                                      [ 50%]
+test_gene_search.py .............                                        [ 53%]
+test_health.py ...                                                       [ 54%]
+test_performance.py ...........                                          [ 57%]
+test_researcher_reports.py ............................                  [ 65%]
+test_security_audit.py ...........                                       [ 68%]
+test_theory_creation.py ................                                 [ 72%]
+test_theory_execution.py ........                                        [ 75%]
+test_theory_forking.py .........                                         [ 77%]
+test_theory_listing.py ...................                               [ 83%]
+test_theory_management.py .....................                          [ 88%]
+test_theory_validation.py ....                                           [ 89%]
+test_variant_interpretation.py .......................                   [ 96%]
+test_webhooks.py .............                                           [100%]
+
+=============================== warnings summary ===============================
+../../../.local/lib/python3.10/site-packages/starlette/formparsers.py:12
+  /home/echrjan/.local/lib/python3.10/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+test_performance.py:246
+  /home/echrjan/repos/dnaresearch/api/test_performance.py:246: PytestUnknownMarkWarning: Unknown pytest.mark.performance - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.performance
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 359 passed, 2 warnings in 26.26s =======================
+71
+📊 Coverage Summary:
+   Total Coverage: 71%
+   Status: ⚠️  MODERATE (60-79%)
+
+71
+2025-08-12 12:11:48,security_scan_duration_sec,0
+2025-08-12 12:11:49,total_validation_duration_sec,91
+2025-08-12 12:12:43,python_lint_duration_sec,2
+2025-08-12 12:12:43,schema_validation_duration_sec,0
+2025-08-12 12:12:43,migration_validation_duration_sec,0
+2025-08-12 12:13:42,unit_test_duration_sec,59
+2025-08-12 12:14:12,coverage_analysis_duration_sec,30
+2025-08-12 12:14:12,test_coverage_percent,============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0
+rootdir: /home/echrjan/repos/dnaresearch/api
+plugins: anyio-4.9.0, asyncio-1.0.0
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 359 items
+
+test_access_control.py ..........                                        [  2%]
+test_access_middleware.py ........                                       [  5%]
+test_anchor_diff.py .....                                                [  6%]
+test_caching.py ............                                             [  9%]
+test_collaboration.py ...............                                    [ 13%]
+test_consent_api.py .................                                    [ 18%]
+test_consent_management.py ...................                           [ 23%]
+test_docs.py ...                                                         [ 24%]
+test_evidence_accumulation.py ........                                   [ 27%]
+test_evidence_api.py ..............                                      [ 30%]
+test_evidence_validation.py ......                                       [ 32%]
+test_file_upload.py ...........................                          [ 40%]
+test_gdpr_api_enhanced.py .............                                  [ 43%]
+test_gdpr_compliance.py ..........                                       [ 46%]
+test_gdpr_enhanced.py .............                                      [ 50%]
+test_gene_search.py .............                                        [ 53%]
+test_health.py ...                                                       [ 54%]
+test_performance.py ...........                                          [ 57%]
+test_researcher_reports.py ............................                  [ 65%]
+test_security_audit.py ...........                                       [ 68%]
+test_theory_creation.py ................                                 [ 72%]
+test_theory_execution.py ........                                        [ 75%]
+test_theory_forking.py .........                                         [ 77%]
+test_theory_listing.py ...................                               [ 83%]
+test_theory_management.py .....................                          [ 88%]
+test_theory_validation.py ....                                           [ 89%]
+test_variant_interpretation.py .......................                   [ 96%]
+test_webhooks.py .............                                           [100%]
+
+=============================== warnings summary ===============================
+../../../.local/lib/python3.10/site-packages/starlette/formparsers.py:12
+  /home/echrjan/.local/lib/python3.10/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+test_performance.py:246
+  /home/echrjan/repos/dnaresearch/api/test_performance.py:246: PytestUnknownMarkWarning: Unknown pytest.mark.performance - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.performance
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 359 passed, 2 warnings in 26.69s =======================
+📊 Coverage Summary:
+   Total Coverage: 71%
+   Status: ⚠️  MODERATE (60-79%)
+
+71
+2025-08-12 12:14:12,security_scan_duration_sec,0
+2025-08-12 12:14:13,total_validation_duration_sec,92

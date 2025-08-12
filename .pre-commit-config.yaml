@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: dna-research-validation
         name: DNA Research Platform Validation
-        entry: scripts/pre-commit-validation.sh
+        entry: scripts/pre-commit-wrapper.sh
         language: script
         files: ^(api/.*|schemas/.*|docker/.*|requirements\.txt)$
         pass_filenames: false
