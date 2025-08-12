@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
+import GeneSearch from './components/GeneSearch';
+import VariantInterpretation from './components/VariantInterpretation';
 
 const THEORY_TEMPLATE = {
   id: "",
@@ -22,6 +24,7 @@ const THEORY_TEMPLATE = {
 };
 
 function App() {
+  const [activeTab, setActiveTab] = useState('search');
   const [formData, setFormData] = useState({
     id: '',
     version: '1.0.0',
@@ -115,19 +118,55 @@ function App() {
     setIsSubmitting(false);
   };
 
+  const tabStyle = (isActive) => ({
+    padding: '10px 20px',
+    margin: '0 5px',
+    backgroundColor: isActive ? '#007bff' : '#f8f9fa',
+    color: isActive ? 'white' : '#333',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '16px'
+  });
+
   return (
     <div>
       <div className="header">
         <div className="container">
-          <h1>DNA Research Platform</h1>
-          <p>Create and validate genomic theories</p>
+          <h1>🧬 DNA Research Platform</h1>
+          <p>Genomic analysis and theory management</p>
+          <nav style={{ marginTop: '20px' }}>
+            <button
+              style={tabStyle(activeTab === 'search')}
+              onClick={() => setActiveTab('search')}
+            >
+              Gene Search
+            </button>
+            <button
+              style={tabStyle(activeTab === 'interpret')}
+              onClick={() => setActiveTab('interpret')}
+            >
+              Variant Interpretation
+            </button>
+            <button
+              style={tabStyle(activeTab === 'theory')}
+              onClick={() => setActiveTab('theory')}
+            >
+              Theory Creation
+            </button>
+          </nav>
         </div>
       </div>
       
       <div className="container">
-        {successMessage && (
-          <div className="success-message">{successMessage}</div>
-        )}
+        {activeTab === 'search' && <GeneSearch />}
+        {activeTab === 'interpret' && <VariantInterpretation />}
+        
+        {activeTab === 'theory' && (
+          <div>
+            {successMessage && (
+              <div className="success-message">{successMessage}</div>
+            )}
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
           <div>
@@ -249,6 +288,8 @@ function App() {
             Reset
           </button>
         </div>
+          </div>
+        )}
       </div>
     </div>
   );

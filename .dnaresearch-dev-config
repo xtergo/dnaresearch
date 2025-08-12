@@ -20,7 +20,7 @@ ENABLE_COVERAGE_METRICS=true
 # Coverage threshold enforcement (true/false)
 # If true, blocks commits below specified threshold
 # Default: false
-ENFORCE_COVERAGE_THRESHOLD=false
+ENFORCE_COVERAGE_THRESHOLD=true
 
 # Coverage threshold percentage (0-100)
 # Minimum coverage required when enforcement is enabled
@@ -30,7 +30,7 @@ COVERAGE_THRESHOLD=80
 # Unit test enforcement (true/false)
 # If true, blocks commits if any unit tests fail
 # Default: true
-REQUIRE_ALL_TESTS_PASS=false
+REQUIRE_ALL_TESTS_PASS=true
 
 # Test duration enforcement (true/false)
 # If true, blocks commits if test duration exceeds threshold
