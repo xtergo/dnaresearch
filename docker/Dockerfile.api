@@ -18,6 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY api/ .
 COPY schemas/ ./schemas/
 
+# Make scripts executable
+RUN chmod +x scripts/*.sh 2>/dev/null || true
+
 # Development stage
 FROM base as development
 

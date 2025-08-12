@@ -1,6 +1,12 @@
 """Tests for GDPR Compliance Manager"""
 
-from gdpr_compliance import BreachSeverity, GDPRComplianceManager
+from gdpr_compliance import (
+    BreachSeverity,
+    BreachStatus,
+    GDPRComplianceManager,
+    PIAStatus,
+    RiskLevel,
+)
 
 
 class TestGDPRComplianceManager:
@@ -14,8 +20,8 @@ class TestGDPRComplianceManager:
         assert len(assessments) == 1
         assert assessments[0].pia_id == "pia_genomic_001"
         assert assessments[0].purpose == "Genomic research and variant analysis"
-        assert assessments[0].risk_level == "high"
-        assert assessments[0].status == "approved"
+        assert assessments[0].risk_level == RiskLevel.HIGH
+        assert assessments[0].status == PIAStatus.APPROVED
 
     def test_create_privacy_assessment_genomic(self):
         """Test creating genomic privacy assessment"""
@@ -24,8 +30,8 @@ class TestGDPRComplianceManager:
 
         assert assessment.pia_id == "pia_002"
         assert assessment.purpose == purpose
-        assert assessment.risk_level == "high"
-        assert assessment.status == "draft"
+        assert assessment.risk_level == RiskLevel.HIGH
+        assert assessment.status == PIAStatus.DRAFT
         assert assessment.created_at.endswith("Z")
 
     def test_create_privacy_assessment_non_genomic(self):
@@ -33,8 +39,8 @@ class TestGDPRComplianceManager:
         purpose = "User account management"
         assessment = self.gdpr_manager.create_privacy_assessment(purpose)
 
-        assert assessment.risk_level == "medium"
-        assert assessment.status == "draft"
+        assert assessment.risk_level == RiskLevel.MEDIUM
+        assert assessment.status == PIAStatus.DRAFT
 
     def test_report_breach_low_severity(self):
         """Test reporting low severity breach"""
@@ -43,7 +49,7 @@ class TestGDPRComplianceManager:
         assert breach.breach_id == "breach_001"
         assert breach.severity == BreachSeverity.LOW
         assert breach.affected_count == 5
-        assert breach.status == "reported"
+        assert breach.status == BreachStatus.REPORTED
 
     def test_report_breach_high_severity(self):
         """Test reporting high severity breach"""

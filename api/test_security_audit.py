@@ -17,7 +17,11 @@ class TestSecurityAudit(unittest.TestCase):
     def setUp(self):
         """Set up test environment"""
         self.project_root = Path(__file__).parent.parent
-        self.security_script = self.project_root / "scripts" / "security-scan.sh"
+        # In Docker container, scripts are in /app/scripts/
+        if Path("/app/scripts").exists():
+            self.security_script = Path("/app/scripts/security-scan.sh")
+        else:
+            self.security_script = self.project_root / "scripts" / "security-scan.sh"
         self.test_reports_dir = tempfile.mkdtemp()
 
     def test_security_script_exists(self):

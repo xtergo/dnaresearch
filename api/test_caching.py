@@ -46,12 +46,22 @@ def test_cache_genomic_stats():
     """Test genomic stats caching"""
     cache_manager.clear()
 
+    # First create some genomic data to ensure anchor exists
+    genomic_data = {
+        "individual_id": "patient-001",
+        "vcf_data": "#VCFV4.2\n1\t12345\t.\tA\tT\t60\tPASS",
+        "reference_genome": "GRCh38",
+    }
+    store_response = client.post("/genomic/store", json=genomic_data)
+    assert store_response.status_code == 200
+    anchor_id = store_response.json()["anchor_id"]
+
     # First request
-    response1 = client.get("/genomic/stats/patient-001/anchor-001")
+    response1 = client.get(f"/genomic/stats/patient-001/{anchor_id}")
     assert response1.status_code == 200
 
     # Second request - should be cached
-    response2 = client.get("/genomic/stats/patient-001/anchor-001")
+    response2 = client.get(f"/genomic/stats/patient-001/{anchor_id}")
     assert response2.status_code == 200
     assert response1.json() == response2.json()
 
@@ -124,7 +134,16 @@ def test_cache_invalidate_pattern():
     # Add some cached data
     client.get("/genes/search?query=BRCA1")
     client.get("/genes/BRCA2")
-    client.get("/genomic/stats/patient-001/anchor-001")
+
+    # Create genomic data first
+    genomic_data = {
+        "individual_id": "patient-001",
+        "vcf_data": "#VCFV4.2\n1\t12345\t.\tA\tT\t60\tPASS",
+        "reference_genome": "GRCh38",
+    }
+    store_response = client.post("/genomic/store", json=genomic_data)
+    anchor_id = store_response.json()["anchor_id"]
+    client.get(f"/genomic/stats/patient-001/{anchor_id}")
 
     # Verify cache has data
     stats_before = client.get("/cache/stats").json()

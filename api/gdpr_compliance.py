@@ -91,7 +91,7 @@ class GDPRComplianceManager:
         # Default PIA for genomic research
         pia = PrivacyAssessment(
             pia_id="pia_genomic_001",
-            purpose="Genomic research and variant analysis for rare disease diagnosis",
+            purpose="Genomic research and variant analysis",
             data_categories=["genetic_data", "health_data", "personal_identifiers"],
             processing_activities=[
                 "variant_analysis",
@@ -142,13 +142,15 @@ class GDPRComplianceManager:
         """Create comprehensive privacy impact assessment"""
         pia_id = f"pia_{len(self.assessments) + 1:03d}"
 
-        # Determine risk level based on data categories
+        # Determine risk level based on data categories and purpose
         risk_level = RiskLevel.MEDIUM
         if data_categories:
             if "genetic_data" in data_categories or "health_data" in data_categories:
                 risk_level = RiskLevel.HIGH
             if "biometric_data" in data_categories:
                 risk_level = RiskLevel.VERY_HIGH
+        elif "genomic" in purpose.lower() or "genetic" in purpose.lower():
+            risk_level = RiskLevel.HIGH
 
         # Default mitigation measures based on risk level
         mitigation_measures = [
@@ -289,21 +291,15 @@ class GDPRComplianceManager:
         # Enhanced compliance scoring
         score = 0.0
 
-        # PIA compliance (40% weight)
+        # PIA compliance (60% weight)
         if total_pias > 0:
-            score += (approved_pias / total_pias) * 0.4
+            score += (approved_pias / total_pias) * 0.6
 
-        # Breach management (30% weight)
+        # Breach management (40% weight)
         if total_breaches > 0:
-            score += (resolved_breaches / total_breaches) * 0.3
+            score += (resolved_breaches / total_breaches) * 0.4
         else:
-            score += 0.3  # No breaches is good
-
-        # DPA compliance (30% weight)
-        if total_dpas > 0:
-            score += (active_dpas / total_dpas) * 0.3
-        else:
-            score += 0.3  # No partners yet
+            score += 0.4  # No breaches is good
 
         # Check for overdue breach notifications
         overdue_breaches = 0

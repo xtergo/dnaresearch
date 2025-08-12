@@ -86,13 +86,7 @@ class TestPerformance:
 
     def test_variant_interpretation_performance(self, client):
         """Test variant interpretation performance - should be < 1000ms P95"""
-        variant_data = {
-            "chromosome": "17",
-            "position": 43094692,
-            "ref": "G",
-            "alt": "A",
-            "gene_symbol": "BRCA1",
-        }
+        variant_data = {"variant": "c.185delAG", "vcf_data": None}
 
         results = self.run_concurrent_requests(
             client, "POST", "/genes/BRCA1/interpret", num_requests=5, json=variant_data
@@ -107,13 +101,26 @@ class TestPerformance:
 
     def test_theory_execution_performance(self, client):
         """Test theory execution performance - should be < 30000ms P95"""
-        execution_data = {"vcf_data": "sample_vcf_content", "family_id": "test_family"}
+        execution_data = {
+            "theory": {
+                "id": "theory-001",
+                "version": "1.0.0",
+                "scope": "autism",
+                "criteria": {"genes": ["SHANK3"]},
+                "evidence_model": {
+                    "priors": 0.1,
+                    "likelihood_weights": {"variant_hit": 2.0},
+                },
+            },
+            "vcf_data": "#VCFV4.2\n22\t51150000\t.\tA\tT\t60\tPASS",
+            "family_id": "test_family",
+        }
 
         # Only run 3 concurrent requests for heavy operations
         results = self.run_concurrent_requests(
             client,
             "POST",
-            "/theories/theory_001/execute",
+            "/theories/theory-001/execute",
             num_requests=3,
             json=execution_data,
         )
@@ -144,6 +151,7 @@ class TestPerformance:
             "filename": "test_data.vcf",
             "file_type": "vcf",
             "file_size": 10000000,
+            "checksum": "abc123def456",
         }
 
         results = self.run_concurrent_requests(
