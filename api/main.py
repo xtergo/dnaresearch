@@ -1892,3 +1892,164 @@ def get_theory_ancestry(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get ancestry: {str(e)}")
+
+
+@app.post("/reports/variant")
+def generate_variant_report(
+    gene: str = Body(..., embed=True),
+    variant: str = Body(..., embed=True),
+    vcf_data: str = Body(None, embed=True),
+):
+    """
+    Generate Variant Report
+
+    Generate detailed technical report for a specific variant.
+    """
+    try:
+        # Check cache first
+        cache_key = f"variant_report_{gene}_{variant}_{hash(vcf_data or '')}"
+        cached = cache_manager.get(cache_key)
+        if cached:
+            return cached
+
+        from researcher_reports import ResearcherReportGenerator
+
+        generator = ResearcherReportGenerator()
+        report = generator.generate_variant_report(gene, variant, vcf_data)
+
+        # Convert to API response format
+        response = {
+            "report_id": report.report_id,
+            "report_type": report.report_type.value,
+            "gene": report.gene,
+            "variant": report.variant,
+            "summary": report.summary,
+            "detailed_analysis": report.detailed_analysis,
+            "clinical_significance": report.clinical_significance,
+            "recommendations": report.recommendations,
+            "confidence_score": report.confidence_score,
+            "generated_at": report.generated_at,
+            "variant_annotations": [
+                {
+                    "variant": ann.variant,
+                    "gene": ann.gene,
+                    "transcript": ann.transcript,
+                    "consequence": ann.consequence,
+                    "amino_acid_change": ann.amino_acid_change,
+                    "conservation_score": ann.conservation_score,
+                    "pathogenicity_score": ann.pathogenicity_score,
+                    "evidence_level": ann.evidence_level.value,
+                }
+                for ann in report.variant_annotations
+            ],
+            "population_frequencies": [
+                {
+                    "population": freq.population,
+                    "frequency": freq.frequency,
+                    "allele_count": freq.allele_count,
+                    "total_alleles": freq.total_alleles,
+                    "source": freq.source,
+                }
+                for freq in report.population_frequencies
+            ],
+            "literature_references": [
+                {
+                    "pmid": ref.pmid,
+                    "title": ref.title,
+                    "authors": ref.authors,
+                    "journal": ref.journal,
+                    "year": ref.year,
+                    "relevance_score": ref.relevance_score,
+                }
+                for ref in report.literature_references
+            ],
+            "metadata": report.metadata,
+        }
+
+        # Cache result
+        cache_manager.set(cache_key, response, 3600)  # 1 hour
+        return response
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Report generation failed: {str(e)}"
+        )
+
+
+@app.post("/reports/gene")
+def generate_gene_report(gene: str = Body(..., embed=True)):
+    """
+    Generate Gene Report
+
+    Generate comprehensive gene summary report.
+    """
+    try:
+        # Check cache first
+        cache_key = f"gene_report_{gene}"
+        cached = cache_manager.get(cache_key)
+        if cached:
+            return cached
+
+        from researcher_reports import ResearcherReportGenerator
+
+        generator = ResearcherReportGenerator()
+        report = generator.generate_gene_report(gene)
+
+        # Convert to API response format
+        response = {
+            "report_id": report.report_id,
+            "report_type": report.report_type.value,
+            "gene": report.gene,
+            "summary": report.summary,
+            "detailed_analysis": report.detailed_analysis,
+            "clinical_significance": report.clinical_significance,
+            "recommendations": report.recommendations,
+            "confidence_score": report.confidence_score,
+            "generated_at": report.generated_at,
+            "total_variants": report.metadata.get("total_variants", 0),
+            "pathogenic_variants": report.metadata.get("pathogenic_variants", 0),
+            "variant_annotations": [
+                {
+                    "variant": ann.variant,
+                    "gene": ann.gene,
+                    "transcript": ann.transcript,
+                    "consequence": ann.consequence,
+                    "amino_acid_change": ann.amino_acid_change,
+                    "conservation_score": ann.conservation_score,
+                    "pathogenicity_score": ann.pathogenicity_score,
+                    "evidence_level": ann.evidence_level.value,
+                }
+                for ann in report.variant_annotations
+            ],
+            "population_frequencies": [
+                {
+                    "population": freq.population,
+                    "frequency": freq.frequency,
+                    "allele_count": freq.allele_count,
+                    "total_alleles": freq.total_alleles,
+                    "source": freq.source,
+                }
+                for freq in report.population_frequencies
+            ],
+            "literature_references": [
+                {
+                    "pmid": ref.pmid,
+                    "title": ref.title,
+                    "authors": ref.authors,
+                    "journal": ref.journal,
+                    "year": ref.year,
+                    "relevance_score": ref.relevance_score,
+                }
+                for ref in report.literature_references
+            ],
+            "metadata": report.metadata,
+        }
+
+        # Cache result
+        cache_manager.set(cache_key, response, 3600)  # 1 hour
+        return response
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Report generation failed: {str(e)}"
+        )
