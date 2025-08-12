@@ -14,6 +14,23 @@ class TheoryCreationResult:
     created_at: str
 
 
+@dataclass
+class TheoryUpdateResult:
+    theory_id: str
+    version: str
+    status: str
+    validation_errors: list
+    updated_at: str
+
+
+@dataclass
+class TheoryDeleteResult:
+    theory_id: str
+    version: str
+    status: str
+    timestamp: str
+
+
 class TheoryCreator:
     """Handle theory creation and validation"""
 
@@ -71,17 +88,17 @@ class TheoryCreator:
         version: str,
         updates: Dict[str, Any],
         author: str = "anonymous",
-    ) -> TheoryCreationResult:
+    ) -> "TheoryUpdateResult":
         """Update an existing theory"""
 
         theory_key = f"{theory_id}@{version}"
         if theory_key not in self.created_theories:
-            return TheoryCreationResult(
+            return TheoryUpdateResult(
                 theory_id=theory_id,
                 version=version,
                 status="not_found",
                 validation_errors=["Theory not found"],
-                created_at="",
+                updated_at="",
             )
 
         # Get existing theory
@@ -89,30 +106,31 @@ class TheoryCreator:
 
         # Apply updates
         theory_data.update(updates)
-        theory_data["updated_at"] = datetime.utcnow().isoformat() + "Z"
+        updated_at = datetime.utcnow().isoformat() + "Z"
+        theory_data["updated_at"] = updated_at
         theory_data["author"] = author
 
         # Validate updated theory
         validation_errors = self._validate_theory_structure(theory_data)
 
         if validation_errors:
-            return TheoryCreationResult(
+            return TheoryUpdateResult(
                 theory_id=theory_id,
                 version=version,
                 status="validation_failed",
                 validation_errors=validation_errors,
-                created_at=theory_data.get("created_at", ""),
+                updated_at=updated_at,
             )
 
         # Store updated theory
         self.created_theories[theory_key] = theory_data
 
-        return TheoryCreationResult(
+        return TheoryUpdateResult(
             theory_id=theory_id,
             version=version,
             status="updated",
             validation_errors=[],
-            created_at=theory_data["created_at"],
+            updated_at=updated_at,
         )
 
     def get_theory(self, theory_id: str, version: str) -> Optional[Dict[str, Any]]:
@@ -120,13 +138,23 @@ class TheoryCreator:
         theory_key = f"{theory_id}@{version}"
         return self.created_theories.get(theory_key)
 
-    def delete_theory(self, theory_id: str, version: str) -> bool:
+    def delete_theory(self, theory_id: str, version: str) -> "TheoryDeleteResult":
         """Delete a theory"""
         theory_key = f"{theory_id}@{version}"
         if theory_key in self.created_theories:
             del self.created_theories[theory_key]
-            return True
-        return False
+            return TheoryDeleteResult(
+                theory_id=theory_id,
+                version=version,
+                status="deleted",
+                timestamp=datetime.utcnow().isoformat() + "Z",
+            )
+        return TheoryDeleteResult(
+            theory_id=theory_id,
+            version=version,
+            status="not_found",
+            timestamp=datetime.utcnow().isoformat() + "Z",
+        )
 
     def get_theory_template(self, scope: str = "autism") -> Dict[str, Any]:
         """Get a theory template for the specified scope"""

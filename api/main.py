@@ -12,6 +12,8 @@ from gene_search import GeneSearchEngine
 from models import HealthResponse
 from security_api import router as security_router
 from theory_creator import TheoryCreator
+from theory_engine import TheoryExecutionEngine
+from theory_forker import TheoryForker
 from theory_manager import TheoryManager
 from validators import validate_theory
 from variant_interpreter import VariantInterpreter
@@ -32,6 +34,8 @@ collaboration_manager = CollaborationManager()
 consent_manager = ConsentManager()
 access_control_manager = AccessControlManager(consent_manager)
 theory_creator = TheoryCreator()
+theory_engine = TheoryExecutionEngine()
+theory_forker = TheoryForker()
 theory_manager = TheoryManager()
 gdpr_manager = GDPRComplianceManager()
 variant_interpreter = VariantInterpreter()
@@ -739,7 +743,10 @@ def get_access_stats():
 
 
 @app.post("/theories")
-def create_theory(theory: dict = Body(...)):
+def create_theory(
+    theory_data: dict = Body(..., embed=True),
+    author: str = Body("anonymous", embed=True),
+):
     """
     Create Theory
 
@@ -768,33 +775,21 @@ def create_theory(theory: dict = Body(...)):
     ```
     """
     try:
-        # Validate theory against JSON schema
-        validated_theory = validate_theory(theory)
+        # Create theory using theory creator (which includes validation)
+        result = theory_creator.create_theory(theory_data, author)
 
-        # Create theory using theory creator
-        result = theory_creator.create_theory(validated_theory, "anonymous")
-
-        if result.status == "validation_failed":
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "message": "Theory validation failed",
-                    "errors": result.validation_errors,
-                },
-            )
-
-        # Invalidate theory listing cache
-        cache_manager.invalidate_pattern("theories_list")
+        # Invalidate theory listing cache if creation was successful
+        if result.status == "created":
+            cache_manager.invalidate_pattern("theories_list")
 
         return {
             "status": result.status,
             "theory_id": result.theory_id,
             "version": result.version,
             "created_at": result.created_at,
+            "validation_errors": result.validation_errors or [],
         }
 
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Theory creation failed: {str(e)}")
 
@@ -879,7 +874,9 @@ def list_theories(
 
 
 @app.get("/theories/template")
-def get_theory_template(scope: str = Query("autism", description="Theory scope")):
+def get_theory_template_legacy(
+    scope: str = Query("autism", description="Theory scope")
+):
     """
     Get Theory Template
 
@@ -1481,3 +1478,417 @@ def update_breach_status(
         raise HTTPException(
             status_code=500, detail=f"Failed to update breach status: {str(e)}"
         )
+
+
+@app.get("/theories/templates/{scope}")
+def get_theory_template(scope: str):
+    """
+    Get Theory Template
+
+    Get a template for creating a new theory in the specified scope.
+
+    **Parameters:**
+    - scope: Theory scope (autism, cancer, cardiovascular, neurological, metabolic)
+
+    **Example Response:**
+    ```json
+    {
+        "id": "",
+        "version": "1.0.0",
+        "scope": "autism",
+        "title": "New Autism Theory",
+        "criteria": {
+            "genes": ["SHANK3"],
+            "pathways": ["synaptic_transmission"],
+            "phenotypes": ["autism_spectrum_disorder"]
+        },
+        "evidence_model": {
+            "priors": 0.1,
+            "likelihood_weights": {
+                "variant_hit": 2.0,
+                "segregation": 1.5,
+                "pathway": 1.0
+            }
+        }
+    }
+    ```
+    """
+    try:
+        # Check cache first
+        cache_key = f"theory_template_{scope}"
+        cached = cache_manager.get(cache_key)
+        if cached:
+            return cached
+
+        template = theory_creator.get_theory_template(scope)
+
+        # Cache result
+        cache_manager.set(cache_key, template, 3600)  # 1 hour
+        return template
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get theory template: {str(e)}"
+        )
+
+
+@app.put("/theories/{theory_id}")
+def update_theory(
+    theory_id: str,
+    version: str = Body(..., embed=True),
+    updates: dict = Body(..., embed=True),
+    author: str = Body("anonymous", embed=True),
+):
+    """
+    Update Theory
+
+    Update an existing theory with new information.
+
+    **Example Request:**
+    ```json
+    {
+        "version": "1.0.0",
+        "updates": {
+            "title": "Updated Theory Title",
+            "description": "Updated description",
+            "tags": ["updated", "validated"]
+        },
+        "author": "researcher_name"
+    }
+    ```
+    """
+    try:
+        # Check if theory exists
+        existing_theory = theory_manager.get_theory_summary(theory_id, version)
+        if not existing_theory:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Theory '{theory_id}' version '{version}' not found",
+            )
+
+        # Update theory using theory creator
+        result = theory_creator.update_theory(theory_id, version, updates, author)
+
+        # Invalidate caches
+        cache_manager.invalidate_pattern("theories_list")
+        cache_manager.invalidate_pattern(f"theory_details_{theory_id}")
+
+        return {
+            "status": result.status,
+            "theory_id": result.theory_id,
+            "version": result.version,
+            "updated_at": result.updated_at,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Theory update failed: {str(e)}")
+
+
+@app.delete("/theories/{theory_id}")
+def delete_theory(
+    theory_id: str, version: str = Query(..., description="Theory version to delete")
+):
+    """
+    Delete Theory
+
+    Delete a specific version of a theory.
+
+    **Parameters:**
+    - theory_id: Theory identifier
+    - version: Theory version to delete
+
+    **Example Response:**
+    ```json
+    {
+        "status": "deleted",
+        "theory_id": "autism-theory-1",
+        "version": "1.0.0",
+        "timestamp": "2025-01-11T15:30:00.000Z"
+    }
+    ```
+    """
+    try:
+        # Check if theory exists
+        existing_theory = theory_manager.get_theory_summary(theory_id, version)
+        if not existing_theory:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Theory '{theory_id}' version '{version}' not found",
+            )
+
+        # Delete theory using theory creator
+        result = theory_creator.delete_theory(theory_id, version)
+
+        if result.status == "not_found":
+            raise HTTPException(
+                status_code=404,
+                detail=f"Theory '{theory_id}' version '{version}' not found",
+            )
+
+        # Invalidate caches
+        cache_manager.invalidate_pattern("theories_list")
+        cache_manager.invalidate_pattern(f"theory_details_{theory_id}")
+
+        return {
+            "status": result.status,
+            "theory_id": result.theory_id,
+            "version": result.version,
+            "timestamp": result.timestamp,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Theory deletion failed: {str(e)}")
+
+
+@app.post("/theories/validate")
+def validate_theory_endpoint(theory: dict = Body(...)):
+    """
+    Validate Theory
+
+    Validate a theory JSON against the schema.
+    """
+    try:
+        # Validate theory using validators module
+        validated_theory = validate_theory(theory)
+
+        return {"status": "valid", "theory": validated_theory}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Validation error: {str(e)}")
+
+
+@app.post("/theories/{theory_id}/execute")
+def execute_theory(
+    theory_id: str,
+    theory: dict = Body(..., embed=True),
+    vcf_data: str = Body(..., embed=True),
+    family_id: str = Body("default", embed=True),
+):
+    """
+    Execute Theory
+
+    Execute a theory against VCF data and calculate Bayes factor.
+
+    **Example Request:**
+    ```json
+    {
+        "theory": {
+            "id": "autism-theory",
+            "version": "1.0.0",
+            "scope": "autism",
+            "criteria": {"genes": ["SHANK3"]},
+            "evidence_model": {"priors": 0.1, "likelihood_weights": {"variant_hit": 2.0}}
+        },
+        "vcf_data": "#VCFV4.2\n22\t51150000\t.\tA\tT\t60\tPASS",
+        "family_id": "family-001"
+    }
+    ```
+    """
+    try:
+        # Validate theory ID matches URL parameter
+        if theory.get("id") != theory_id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Theory ID mismatch: URL has '{theory_id}', body has '{theory.get('id')}'",
+            )
+
+        # Validate theory schema
+        try:
+            validate_theory(theory)
+        except HTTPException as e:
+            raise HTTPException(status_code=400, detail=f"Invalid theory: {e.detail}")
+
+        # Execute theory
+        result = theory_engine.execute_theory(theory, vcf_data, family_id)
+
+        return {
+            "theory_id": result.theory_id,
+            "version": result.version,
+            "bayes_factor": result.bayes_factor,
+            "posterior": result.posterior,
+            "support_class": result.support_class,
+            "execution_time_ms": result.execution_time_ms,
+            "diagnostics": result.diagnostics,
+            "artifact_hash": result.artifact_hash,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Theory execution failed: {str(e)}"
+        )
+
+
+@app.post("/theories/{theory_id}/fork")
+def fork_theory(
+    theory_id: str,
+    parent_theory: dict = Body(..., embed=True),
+    new_theory_id: str = Body(..., embed=True),
+    modifications: dict = Body(..., embed=True),
+    fork_reason: str = Body("user_modification", embed=True),
+):
+    """
+    Fork Theory
+
+    Create a new theory by forking an existing one with modifications.
+
+    **Example Request:**
+    ```json
+    {
+        "parent_theory": {
+            "id": "parent-theory",
+            "version": "1.0.0",
+            "scope": "autism",
+            "criteria": {"genes": ["SHANK3"]},
+            "evidence_model": {"priors": 0.1, "likelihood_weights": {"variant_hit": 2.0}}
+        },
+        "new_theory_id": "child-theory",
+        "modifications": {
+            "criteria": {"genes": ["SHANK3", "NRXN1"]}
+        },
+        "fork_reason": "added_genes"
+    }
+    ```
+    """
+    try:
+        # Validate parent theory ID matches URL parameter
+        if parent_theory.get("id") != theory_id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Parent theory ID mismatch: URL has '{theory_id}', body has '{parent_theory.get('id')}'",
+            )
+
+        # Validate parent theory schema
+        try:
+            validate_theory(parent_theory)
+        except HTTPException as e:
+            raise HTTPException(
+                status_code=400, detail=f"Invalid parent theory: {e.detail}"
+            )
+
+        # Fork the theory
+        fork_result, new_theory = theory_forker.fork_theory(
+            parent_theory, new_theory_id, modifications, fork_reason
+        )
+
+        # Invalidate theory listing cache
+        cache_manager.invalidate_pattern("theories_list")
+
+        return {
+            "status": "theory_forked",
+            "new_theory_id": fork_result.new_theory_id,
+            "new_version": fork_result.new_version,
+            "parent_id": fork_result.parent_id,
+            "parent_version": fork_result.parent_version,
+            "changes_made": fork_result.changes_made,
+            "new_theory": new_theory,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Theory forking failed: {str(e)}")
+
+
+@app.get("/theories/{theory_id}/lineage")
+def get_theory_lineage(
+    theory_id: str, version: str = Query(..., description="Theory version")
+):
+    """
+    Get Theory Lineage
+
+    Get lineage information for a theory version.
+    """
+    try:
+        lineage = theory_forker.get_lineage(theory_id, version)
+
+        if lineage:
+            return {
+                "theory_id": lineage.theory_id,
+                "version": lineage.version,
+                "parent_id": lineage.parent_id,
+                "parent_version": lineage.parent_version,
+                "fork_reason": lineage.fork_reason,
+                "created_at": lineage.created_at,
+                "is_root": lineage.parent_id is None,
+            }
+        else:
+            # Root theory with no parent
+            return {
+                "theory_id": theory_id,
+                "version": version,
+                "lineage": None,
+                "is_root": True,
+            }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get lineage: {str(e)}")
+
+
+@app.get("/theories/{theory_id}/children")
+def get_theory_children(
+    theory_id: str, version: str = Query(..., description="Parent theory version")
+):
+    """
+    Get Theory Children
+
+    Get all theories forked from a parent theory.
+    """
+    try:
+        children = theory_forker.get_children(theory_id, version)
+
+        return {
+            "parent_id": theory_id,
+            "parent_version": version,
+            "children": [
+                {
+                    "theory_id": child.theory_id,
+                    "version": child.version,
+                    "fork_reason": child.fork_reason,
+                    "created_at": child.created_at,
+                }
+                for child in children
+            ],
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get children: {str(e)}")
+
+
+@app.get("/theories/{theory_id}/ancestry")
+def get_theory_ancestry(
+    theory_id: str, version: str = Query(..., description="Theory version")
+):
+    """
+    Get Theory Ancestry
+
+    Get full ancestry chain for a theory.
+    """
+    try:
+        ancestry = theory_forker.get_ancestry(theory_id, version)
+
+        return {
+            "theory_id": theory_id,
+            "version": version,
+            "ancestry": [
+                {
+                    "theory_id": lineage.theory_id,
+                    "version": lineage.version,
+                    "parent_id": lineage.parent_id,
+                    "parent_version": lineage.parent_version,
+                    "fork_reason": lineage.fork_reason,
+                    "created_at": lineage.created_at,
+                }
+                for lineage in ancestry
+            ],
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get ancestry: {str(e)}")
