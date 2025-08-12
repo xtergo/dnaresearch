@@ -3,15 +3,18 @@ from datetime import datetime
 from typing import List
 
 from access_control import AccessAction, AccessControlManager, AccessRequest
-from enhanced_webhook_handler import EnhancedWebhookHandler
 from access_middleware import AccessControlMiddleware
 from anchor_diff import AnchorDiffStorage
+from auth import User, get_current_active_user
+from auth_routes import router as auth_router
 from cache_manager import CacheManager
 from collaboration_manager import CollaborationManager, ReactionType
 from consent_manager import ConsentManager
+from enhanced_webhook_handler import EnhancedWebhookHandler
 from evidence_accumulator import EvidenceAccumulator
 from evidence_validator import EvidenceValidator
-from fastapi import Body, FastAPI, HTTPException, Query, Request, Response
+from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from file_upload_manager import FileUploadManager
 from gdpr_compliance import GDPRComplianceManager
 from gene_search import GeneSearchEngine
@@ -31,6 +34,15 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Initialize components for collaboration and access control API
@@ -88,6 +100,15 @@ app.add_middleware(
 
 # Include security API routes
 app.include_router(security_router)
+
+# Include authentication routes
+app.include_router(auth_router)
+
+
+@app.get("/")
+def root():
+    """Root endpoint"""
+    return {"message": "DNA Research Platform API", "docs": "/docs"}
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -823,7 +844,10 @@ def get_access_stats():
 
 
 @app.post("/theories")
-def create_theory(request_data: dict = Body(...)):
+def create_theory(
+    request_data: dict = Body(...),
+    current_user: User = Depends(get_current_active_user),
+):
     """
     Create Theory
 
@@ -859,10 +883,10 @@ def create_theory(request_data: dict = Body(...)):
         is_wrapped_format = "theory_data" in request_data
         if is_wrapped_format:
             theory_data = request_data["theory_data"]
-            author = request_data.get("author", "anonymous")
+            author = request_data.get("author", current_user.username)
         else:
             theory_data = request_data.copy()
-            author = theory_data.pop("author", "anonymous")
+            author = theory_data.pop("author", current_user.username)
 
         # Create theory using theory creator (which includes validation)
         result = theory_creator.create_theory(theory_data, author)
@@ -1811,7 +1835,7 @@ def update_theory(
     theory_id: str,
     version: str = Body(..., embed=True),
     updates: dict = Body(..., embed=True),
-    author: str = Body("anonymous", embed=True),
+    current_user: User = Depends(get_current_active_user),
 ):
     """
     Update Theory
@@ -1841,7 +1865,9 @@ def update_theory(
             )
 
         # Update theory using theory creator
-        result = theory_creator.update_theory(theory_id, version, updates, author)
+        result = theory_creator.update_theory(
+            theory_id, version, updates, current_user.username
+        )
 
         # Invalidate caches
         cache_manager.invalidate_pattern("theories_list")
@@ -1862,7 +1888,9 @@ def update_theory(
 
 @app.delete("/theories/{theory_id}")
 def delete_theory(
-    theory_id: str, version: str = Query(..., description="Theory version to delete")
+    theory_id: str,
+    version: str = Query(..., description="Theory version to delete"),
+    current_user: User = Depends(get_current_active_user),
 ):
     """
     Delete Theory

@@ -7,7 +7,7 @@ services:
       dockerfile: docker/Dockerfile.api
       target: development
     ports:
-      - "8000:8000"
+      - "7777:7777"
     volumes:
       - ../api:/app
       - ../schemas:/app/schemas
@@ -18,12 +18,13 @@ services:
       - MINIO_ACCESS_KEY=dev_access_key
       - MINIO_SECRET_KEY=dev_secret_key
       - API_SECRET_KEY=dev_secret_key_change_in_production
+      - JWT_SECRET_KEY=dev_jwt_secret_key_change_in_production
       - DEBUG=true
     depends_on:
       - postgres
       - redis
       - minio
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn main:app --host 0.0.0.0 --port 7777 --reload
     networks:
       - dnaresearch_dev
 

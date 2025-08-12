@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
 import { theoryService } from './services/api';
+import authService from './services/auth';
 import GeneSearch from './components/GeneSearch';
 import VariantInterpretation from './components/VariantInterpretation';
 import TheoryManagement from './components/TheoryManagement';
 import FileUpload from './components/FileUpload';
+import Login from './components/Login';
 
 const THEORY_TEMPLATE = {
   id: "",
@@ -28,6 +30,8 @@ const THEORY_TEMPLATE = {
 
 function App() {
   const [activeTab, setActiveTab] = useState('search');
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     id: '',
     version: '1.0.0',
@@ -121,16 +125,62 @@ function App() {
     setIsSubmitting(false);
   };
 
+  // Check authentication on app load
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (authService.isAuthenticated()) {
+        try {
+          const currentUser = await authService.getCurrentUser();
+          setUser(currentUser);
+        } catch (error) {
+          console.error('Auth check failed:', error);
+        }
+      }
+      setIsLoading(false);
+    };
+    checkAuth();
+  }, []);
+
+  const handleLogin = (userData, token) => {
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setUser(null);
+  };
+
   const tabStyle = (isActive) => ({
     className: isActive ? 'active' : ''
   });
+
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div>
       <div className="header">
         <div className="container">
-          <h1>🧬 DNA Research Platform</h1>
-          <p>Genomic analysis and theory management</p>
+          <div className="header-content">
+            <div>
+              <h1>🧬 DNA Research Platform</h1>
+              <p>Genomic analysis and theory management</p>
+            </div>
+            <div className="user-info">
+              <span>Welcome, {user.username} ({user.role})</span>
+              <button onClick={handleLogout} className="btn btn-secondary">Logout</button>
+            </div>
+          </div>
           <nav style={{ marginTop: '20px' }}>
             <button
               className={activeTab === 'search' ? 'active' : ''}
