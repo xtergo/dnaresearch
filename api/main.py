@@ -14,6 +14,7 @@ from security_api import router as security_router
 from theory_creator import TheoryCreator
 from theory_manager import TheoryManager
 from validators import validate_theory
+from variant_interpreter import VariantInterpreter
 
 app = FastAPI(
     title="DNA Research Platform API",
@@ -33,6 +34,7 @@ access_control_manager = AccessControlManager(consent_manager)
 theory_creator = TheoryCreator()
 theory_manager = TheoryManager()
 gdpr_manager = GDPRComplianceManager()
+variant_interpreter = VariantInterpreter()
 # Link theory creator to theory manager for integration
 theory_manager.theory_creator = theory_creator
 
@@ -170,6 +172,117 @@ def get_gene_details(symbol: str):
     cache_key = f"gene_details_{symbol}"
     cache_manager.set(cache_key, gene, 7200)  # 2 hours
     return gene
+
+
+@app.post("/genes/{gene}/interpret")
+def interpret_variant(
+    gene: str,
+    variant: str = Body(..., embed=True),
+    vcf_data: str = Body(None, embed=True),
+):
+    """
+    Interpret Genetic Variant
+
+    Interpret a genetic variant with plain language explanations.
+
+    **Parameters:**
+    - gene: Gene symbol (e.g., "BRCA1")
+    - variant: HGVS variant notation (e.g., "c.185delAG")
+    - vcf_data: Optional VCF data for additional context
+
+    **Example Request:**
+    ```json
+    {
+        "variant": "c.185delAG",
+        "vcf_data": null
+    }
+    ```
+
+    **Example Response:**
+    ```json
+    {
+        "gene": "BRCA1",
+        "variant": "c.185delAG",
+        "impact": "pathogenic",
+        "confidence": "high",
+        "parent_explanation": "This genetic change in the BRCA1 gene is known to cause breast and ovarian cancer...",
+        "technical_explanation": "Variant c.185delAG in BRCA1 is classified as deletion...",
+        "recommendations": ["Genetic counseling recommended", "Enhanced screening"],
+        "evidence_sources": ["ClinVar database", "ACMG/AMP guidelines"],
+        "population_frequency": 0.0001
+    }
+    ```
+    """
+    try:
+        # Check cache first
+        cache_key = f"variant_interpret_{gene}_{variant}_{hash(vcf_data or '')}"
+        cached = cache_manager.get(cache_key)
+        if cached:
+            return cached
+
+        # Interpret the variant
+        result = variant_interpreter.interpret_variant(gene, variant, vcf_data)
+
+        response = {
+            "gene": result.gene,
+            "variant": result.variant,
+            "impact": result.impact.value,
+            "confidence": result.confidence.value,
+            "parent_explanation": result.parent_explanation,
+            "technical_explanation": result.technical_explanation,
+            "recommendations": result.recommendations,
+            "evidence_sources": result.evidence_sources,
+            "population_frequency": result.population_frequency,
+        }
+
+        # Cache result
+        cache_manager.set(cache_key, response, 3600)  # 1 hour
+        return response
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Variant interpretation failed: {str(e)}"
+        )
+
+
+@app.get("/genes/{gene}/summary")
+def get_gene_summary(gene: str):
+    """
+    Get Gene Summary
+
+    Get summary information about a gene including clinical significance.
+
+    **Parameters:**
+    - gene: Gene symbol (e.g., "BRCA1")
+
+    **Example Response:**
+    ```json
+    {
+        "gene": "BRCA1",
+        "condition": "breast and ovarian cancer",
+        "inheritance_pattern": "autosomal dominant",
+        "penetrance": "high",
+        "recommended_screening": "enhanced breast/ovarian screening",
+        "clinical_significance": "Variants in BRCA1 can affect breast and ovarian cancer"
+    }
+    ```
+    """
+    try:
+        # Check cache first
+        cache_key = f"gene_summary_{gene}"
+        cached = cache_manager.get(cache_key)
+        if cached:
+            return cached
+
+        # Get gene summary
+        summary = variant_interpreter.get_gene_summary(gene)
+
+        # Cache result
+        cache_manager.set(cache_key, summary, 7200)  # 2 hours
+        return summary
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gene summary failed: {str(e)}")
 
 
 @app.post("/theories/{theory_id}/comments")
