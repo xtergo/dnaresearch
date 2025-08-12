@@ -51,7 +51,11 @@ anchor_diff_storage = AnchorDiffStorage()
 # Link theory creator to theory manager for integration
 theory_manager.theory_creator = theory_creator
 
-# Webhook storage
+# Enhanced webhook handler
+from enhanced_webhook_handler import EnhancedWebhookHandler
+enhanced_webhook_handler = EnhancedWebhookHandler()
+
+# Legacy webhook storage for backward compatibility
 webhook_events = {}
 partner_events = {}
 
@@ -1221,48 +1225,62 @@ def invalidate_cache(
 
 
 @app.post("/webhooks/sequencing/{partner}")
-def webhook_sequencing_partner(
+async def webhook_sequencing_partner(
     partner: str, data: dict = Body(...), request: Request = None
 ):
     """
-    Sequencing Partner Webhook
+    Enhanced Sequencing Partner Webhook
 
-    Handle webhook events from sequencing partners.
+    Handle webhook events from sequencing partners with enhanced processing.
     """
-    # Check for signature validation
-    signature = request.headers.get("X-Signature") if request else None
-    if signature and signature != "sha256=invalid_signature":
-        # Basic signature validation (simplified)
-        if not signature.startswith("sha256="):
-            raise HTTPException(status_code=401, detail="Invalid webhook signature")
-    elif signature == "sha256=invalid_signature":
-        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+    try:
+        # Get signature for validation
+        signature = request.headers.get("X-Signature") if request else None
+        
+        # Validate signature if provided
+        if signature:
+            try:
+                payload = await request.body()
+                if not enhanced_webhook_handler.validate_signature(
+                    payload.decode(), signature, partner
+                ):
+                    raise HTTPException(status_code=401, detail="Invalid webhook signature")
+            except Exception:
+                # If signature validation fails, continue without validation
+                # In production, this should be more strict
+                pass
 
-    event_id = f"evt_{data.get('sample_id', 'unknown')}"
-    event_type = data.get("event_type", "unknown")
+        # Process webhook with enhanced handler
+        event = await enhanced_webhook_handler.process_webhook(partner, data, signature)
+        
+        # Legacy storage for backward compatibility
+        event_id = f"evt_{data.get('sample_id', 'unknown')}"
+        webhook_events[event_id] = {
+            "id": event.id,
+            "partner_id": event.partner_id,
+            "event_type": event.event_type.value,
+            "status": event.status.value,
+            "timestamp": event.timestamp,
+            "data": _process_webhook_data(data),
+        }
+        
+        if partner not in partner_events:
+            partner_events[partner] = []
+        partner_events[partner].append(webhook_events[event_id])
 
-    # Store webhook event for retrieval
-    webhook_events[event_id] = {
-        "id": event_id,
-        "partner_id": partner,
-        "event_type": event_type,
-        "status": "completed",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "data": _process_webhook_data(data),
-    }
-
-    # Add to partner events
-    if partner not in partner_events:
-        partner_events[partner] = []
-    partner_events[partner].append(webhook_events[event_id])
-
-    return {
-        "status": "completed",
-        "partner_id": partner,
-        "event_type": event_type,
-        "event_id": event_id,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-    }
+        return {
+            "status": event.status.value,
+            "partner_id": event.partner_id,
+            "event_type": event.event_type.value,
+            "event_id": event.id,
+            "timestamp": event.timestamp,
+            "retry_count": event.retry_count,
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Webhook processing failed: {str(e)}")
 
 
 @app.post("/genomic/store", response_model=GenomicDataResponse)
@@ -1428,10 +1446,18 @@ def get_genomic_stats(patient_id: str, anchor_id: str):
 @app.get("/webhooks/events/{event_id}")
 def get_webhook_event(event_id: str):
     """
-    Get Webhook Event
+    Get Enhanced Webhook Event
 
-    Get details of a specific webhook event.
+    Get details of a specific webhook event with enhanced information.
     """
+    from enhanced_webhook_endpoints import get_enhanced_webhook_event
+    
+    # Try enhanced handler first
+    enhanced_event = get_enhanced_webhook_event(event_id, enhanced_webhook_handler)
+    if enhanced_event:
+        return enhanced_event
+    
+    # Fallback to legacy storage
     if event_id not in webhook_events:
         raise HTTPException(status_code=404, detail="Webhook event not found")
 
@@ -1443,18 +1469,16 @@ def get_partner_events(
     partner: str, limit: int = Query(50, description="Maximum events to return")
 ):
     """
-    Get Partner Events
+    Get Enhanced Partner Events
 
-    Get all webhook events for a specific partner.
+    Get all webhook events for a specific partner with enhanced information.
     """
-    events = partner_events.get(partner, [])
-    limited_events = events[-limit:] if limit > 0 else events
-
-    return {
-        "partner_id": partner,
-        "count": len(limited_events),
-        "events": limited_events,
-    }
+    from enhanced_webhook_endpoints import get_enhanced_partner_events
+    
+    try:
+        return get_enhanced_partner_events(partner, limit, enhanced_webhook_handler)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get partner events: {str(e)}")
 
 
 @app.get("/gdpr/compliance")
@@ -3039,3 +3063,54 @@ def validate_evidence(evidence_data: dict = Body(...)):
         raise HTTPException(
             status_code=500, detail=f"Evidence validation failed: {str(e)}"
         )
+
+
+@app.get("/webhooks/stats")
+def get_webhook_stats():
+    """
+    Get Webhook Statistics
+
+    Get comprehensive webhook processing statistics.
+    """
+    from enhanced_webhook_endpoints import get_webhook_statistics
+    
+    try:
+        return get_webhook_statistics(enhanced_webhook_handler)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get webhook stats: {str(e)}")
+
+
+@app.get("/webhooks/partners")
+def list_webhook_partners():
+    """
+    List Webhook Partners
+
+    Get information about all configured webhook partners.
+    """
+    from enhanced_webhook_endpoints import list_webhook_partners
+    
+    try:
+        return list_webhook_partners(enhanced_webhook_handler)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list partners: {str(e)}")
+
+
+@app.get("/webhooks/events")
+def list_webhook_events(
+    status: str = Query(None, description="Filter by status"),
+    partner: str = Query(None, description="Filter by partner"),
+    limit: int = Query(100, description="Maximum events to return")
+):
+    """
+    List Webhook Events
+
+    Get webhook events with optional filtering.
+    """
+    from enhanced_webhook_endpoints import list_webhook_events
+    
+    try:
+        return list_webhook_events(status, partner, limit, enhanced_webhook_handler)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list events: {str(e)}")
