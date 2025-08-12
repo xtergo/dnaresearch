@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 
 from access_control import AccessAction, AccessControlManager, AccessRequest
 from access_middleware import AccessControlMiddleware
@@ -6,6 +7,7 @@ from cache_manager import CacheManager
 from collaboration_manager import CollaborationManager, ReactionType
 from consent_manager import ConsentManager
 from fastapi import Body, FastAPI, HTTPException, Query, Request
+from gdpr_compliance import GDPRComplianceManager
 from gene_search import GeneSearchEngine
 from models import HealthResponse
 from security_api import router as security_router
@@ -30,6 +32,7 @@ consent_manager = ConsentManager()
 access_control_manager = AccessControlManager(consent_manager)
 theory_creator = TheoryCreator()
 theory_manager = TheoryManager()
+gdpr_manager = GDPRComplianceManager()
 # Link theory creator to theory manager for integration
 theory_manager.theory_creator = theory_creator
 
@@ -1098,3 +1101,270 @@ def get_partner_events(
         "count": len(limited_events),
         "events": limited_events,
     }
+
+
+@app.get("/gdpr/compliance")
+def get_gdpr_compliance_status():
+    """
+    Get GDPR Compliance Status
+
+    Get overall GDPR compliance metrics and status.
+    """
+    try:
+        status = gdpr_manager.get_compliance_status()
+        return status
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get compliance status: {str(e)}"
+        )
+
+
+@app.post("/gdpr/privacy-assessment")
+def create_privacy_assessment(
+    purpose: str = Body(..., embed=True),
+    data_categories: List[str] = Body(None, embed=True),
+    processing_activities: List[str] = Body(None, embed=True),
+):
+    """
+    Create Privacy Impact Assessment
+
+    Create a comprehensive privacy impact assessment for data processing.
+
+    **Example Request:**
+    ```json
+    {
+        "purpose": "Genomic variant analysis for rare disease research",
+        "data_categories": ["genetic_data", "health_data", "personal_identifiers"],
+        "processing_activities": ["variant_calling", "pathogenicity_assessment", "report_generation"]
+    }
+    ```
+    """
+    try:
+        assessment = gdpr_manager.create_privacy_assessment(
+            purpose, data_categories, processing_activities
+        )
+        return {
+            "pia_id": assessment.pia_id,
+            "purpose": assessment.purpose,
+            "data_categories": assessment.data_categories,
+            "processing_activities": assessment.processing_activities,
+            "risk_level": assessment.risk_level.value,
+            "status": assessment.status.value,
+            "mitigation_measures": assessment.mitigation_measures,
+            "created_at": assessment.created_at,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create assessment: {str(e)}"
+        )
+
+
+@app.post("/gdpr/breach-notification")
+def report_data_breach(
+    description: str = Body(..., embed=True),
+    affected_count: int = Body(..., embed=True),
+    severity: str = Body(..., embed=True),
+    data_categories: List[str] = Body(None, embed=True),
+):
+    """
+    Report Data Breach
+
+    Report a data breach and initiate notification procedures with enhanced tracking.
+
+    **Example Request:**
+    ```json
+    {
+        "description": "Unauthorized access to genomic database",
+        "affected_count": 150,
+        "severity": "high",
+        "data_categories": ["genetic_data", "personal_identifiers"]
+    }
+    ```
+    """
+    try:
+        breach = gdpr_manager.report_breach(
+            description, affected_count, severity, data_categories
+        )
+        return {
+            "breach_id": breach.breach_id,
+            "description": breach.description,
+            "severity": breach.severity.value,
+            "affected_count": breach.affected_count,
+            "data_categories": breach.data_categories,
+            "reported_at": breach.reported_at,
+            "status": breach.status.value,
+            "containment_measures": breach.containment_measures,
+            "notification_deadline": breach.notification_deadline,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to report breach: {str(e)}"
+        )
+
+
+@app.post("/gdpr/data-processing-agreement")
+def create_data_processing_agreement(
+    partner_name: str = Body(..., embed=True),
+    purpose: str = Body(..., embed=True),
+    data_categories: List[str] = Body(..., embed=True),
+    retention_period: str = Body(..., embed=True),
+):
+    """
+    Create Data Processing Agreement
+
+    Create a new data processing agreement with a partner.
+
+    **Example Request:**
+    ```json
+    {
+        "partner_name": "Illumina Sequencing Services",
+        "purpose": "Whole genome sequencing for rare disease analysis",
+        "data_categories": ["genetic_samples", "sequencing_data", "quality_metrics"],
+        "retention_period": "7 years post-analysis completion"
+    }
+    ```
+    """
+    try:
+        dpa = gdpr_manager.create_data_processing_agreement(
+            partner_name, purpose, data_categories, retention_period
+        )
+        return {
+            "dpa_id": dpa.dpa_id,
+            "partner_name": dpa.partner_name,
+            "purpose": dpa.purpose,
+            "data_categories": dpa.data_categories,
+            "retention_period": dpa.retention_period,
+            "security_measures": dpa.security_measures,
+            "signed_date": dpa.signed_date,
+            "expiry_date": dpa.expiry_date,
+            "status": dpa.status,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create DPA: {str(e)}")
+
+
+@app.get("/gdpr/compliance-report")
+def get_compliance_report():
+    """
+    Get GDPR Compliance Report
+
+    Generate a comprehensive GDPR compliance report with risk assessment and recommendations.
+
+    **Example Response:**
+    ```json
+    {
+        "report_id": "compliance_report_20250111_153000",
+        "generated_at": "2025-01-11T15:30:00.000Z",
+        "compliance_status": {
+            "compliance_score": 0.85,
+            "privacy_assessments": {"total": 3, "approved": 2},
+            "breach_notifications": {"total": 1, "resolved": 1},
+            "data_processing_agreements": {"total": 2, "active": 2}
+        },
+        "recommendations": ["Review pending privacy assessments"]
+    }
+    ```
+    """
+    try:
+        report = gdpr_manager.generate_compliance_report()
+        return report
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate compliance report: {str(e)}"
+        )
+
+
+@app.get("/gdpr/privacy-assessments")
+def list_privacy_assessments():
+    """
+    List Privacy Impact Assessments
+
+    Get all privacy impact assessments with their current status.
+    """
+    try:
+        assessments = gdpr_manager.list_assessments()
+        return {
+            "assessments": [
+                {
+                    "pia_id": pia.pia_id,
+                    "purpose": pia.purpose,
+                    "risk_level": pia.risk_level.value,
+                    "status": pia.status.value,
+                    "created_at": pia.created_at,
+                    "updated_at": pia.updated_at,
+                }
+                for pia in assessments
+            ],
+            "count": len(assessments),
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list assessments: {str(e)}"
+        )
+
+
+@app.get("/gdpr/data-processing-agreements")
+def list_data_processing_agreements():
+    """
+    List Data Processing Agreements
+
+    Get all active data processing agreements with partners.
+    """
+    try:
+        dpas = gdpr_manager.list_dpas()
+        return {
+            "agreements": [
+                {
+                    "dpa_id": dpa.dpa_id,
+                    "partner_name": dpa.partner_name,
+                    "purpose": dpa.purpose,
+                    "status": dpa.status,
+                    "signed_date": dpa.signed_date,
+                    "expiry_date": dpa.expiry_date,
+                }
+                for dpa in dpas
+            ],
+            "count": len(dpas),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list DPAs: {str(e)}")
+
+
+@app.put("/gdpr/breach/{breach_id}/status")
+def update_breach_status(
+    breach_id: str,
+    status: str = Body(..., embed=True),
+    notify_regulatory: bool = Body(False, embed=True),
+):
+    """
+    Update Breach Status
+
+    Update the status of a reported data breach.
+
+    **Example Request:**
+    ```json
+    {
+        "status": "resolved",
+        "notify_regulatory": true
+    }
+    ```
+    """
+    try:
+        success = gdpr_manager.update_breach_status(
+            breach_id, status, notify_regulatory
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Breach not found")
+
+        return {
+            "status": "updated",
+            "breach_id": breach_id,
+            "new_status": status,
+            "regulatory_notified": notify_regulatory,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update breach status: {str(e)}"
+        )
