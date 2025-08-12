@@ -3,6 +3,8 @@ import Editor from '@monaco-editor/react';
 import axios from 'axios';
 import GeneSearch from './components/GeneSearch';
 import VariantInterpretation from './components/VariantInterpretation';
+import TheoryManagement from './components/TheoryManagement';
+import FileUpload from './components/FileUpload';
 
 const THEORY_TEMPLATE = {
   id: "",
@@ -149,6 +151,18 @@ function App() {
               Variant Interpretation
             </button>
             <button
+              style={tabStyle(activeTab === 'theories')}
+              onClick={() => setActiveTab('theories')}
+            >
+              Theory Management
+            </button>
+            <button
+              style={tabStyle(activeTab === 'upload')}
+              onClick={() => setActiveTab('upload')}
+            >
+              File Upload
+            </button>
+            <button
               style={tabStyle(activeTab === 'theory')}
               onClick={() => setActiveTab('theory')}
             >
@@ -161,6 +175,8 @@ function App() {
       <div className="container">
         {activeTab === 'search' && <GeneSearch />}
         {activeTab === 'interpret' && <VariantInterpretation />}
+        {activeTab === 'theories' && <TheoryManagement />}
+        {activeTab === 'upload' && <FileUpload />}
         
         {activeTab === 'theory' && (
           <div>
