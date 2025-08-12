@@ -1,10 +1,9 @@
 """Tests for enhanced webhook functionality"""
 
-import asyncio
 import hashlib
 import hmac
 import json
-import pytest
+
 from fastapi.testclient import TestClient
 from main import app
 
@@ -41,14 +40,16 @@ class TestEnhancedWebhooks:
     def test_enhanced_webhook_with_signature(self):
         """Test enhanced webhook with valid signature"""
         webhook_data = {
-            "event_type": "sequencing_complete", 
-            "sample_id": "enhanced_sample_002"
+            "event_type": "sequencing_complete",
+            "sample_id": "enhanced_sample_002",
         }
 
         # Create valid signature for enhanced handler
         payload = json.dumps(webhook_data, sort_keys=True)
         secret = "illumina_webhook_secret_key_2025"
-        signature = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
+        signature = hmac.new(
+            secret.encode(), payload.encode(), hashlib.sha256
+        ).hexdigest()
 
         response = client.post(
             "/webhooks/sequencing/illumina",
@@ -61,10 +62,12 @@ class TestEnhancedWebhooks:
         """Test webhook with invalid partner"""
         webhook_data = {
             "event_type": "sequencing_complete",
-            "sample_id": "invalid_partner_sample"
+            "sample_id": "invalid_partner_sample",
         }
 
-        response = client.post("/webhooks/sequencing/invalid_partner", json=webhook_data)
+        response = client.post(
+            "/webhooks/sequencing/invalid_partner", json=webhook_data
+        )
         assert response.status_code == 400
         assert "Unknown partner" in response.json()["detail"]
 
@@ -72,7 +75,7 @@ class TestEnhancedWebhooks:
         """Test webhook with unsupported event type"""
         webhook_data = {
             "event_type": "unsupported_event",
-            "sample_id": "unsupported_sample"
+            "sample_id": "unsupported_sample",
         }
 
         response = client.post("/webhooks/sequencing/illumina", json=webhook_data)
@@ -84,11 +87,7 @@ class TestEnhancedWebhooks:
         webhook_data = {
             "event_type": "qc_complete",
             "sample_id": "enhanced_qc_sample",
-            "qc_metrics": {
-                "passed": True,
-                "quality_score": 42.5,
-                "coverage": "35x"
-            },
+            "qc_metrics": {"passed": True, "quality_score": 42.5, "coverage": "35x"},
         }
 
         response = client.post("/webhooks/sequencing/illumina", json=webhook_data)
@@ -105,7 +104,7 @@ class TestEnhancedWebhooks:
             "analysis_results": {
                 "variant_count": 5678,
                 "analysis_type": "exome",
-                "reference": "GRCh38"
+                "reference": "GRCh38",
             },
         }
 
@@ -120,10 +119,12 @@ class TestEnhancedWebhooks:
         # Create an event first
         webhook_data = {
             "event_type": "sequencing_complete",
-            "sample_id": "enhanced_event_test"
+            "sample_id": "enhanced_event_test",
         }
 
-        create_response = client.post("/webhooks/sequencing/illumina", json=webhook_data)
+        create_response = client.post(
+            "/webhooks/sequencing/illumina", json=webhook_data
+        )
         event_id = create_response.json()["event_id"]
 
         # Get the enhanced event
@@ -144,7 +145,7 @@ class TestEnhancedWebhooks:
         for i in range(3):
             webhook_data = {
                 "event_type": "sequencing_complete",
-                "sample_id": f"enhanced_partner_test_{i}"
+                "sample_id": f"enhanced_partner_test_{i}",
             }
             client.post("/webhooks/sequencing/illumina", json=webhook_data)
 
@@ -180,11 +181,11 @@ class TestEnhancedWebhooks:
         assert "partners" in data
         assert "count" in data
         assert "active_count" in data
-        
+
         # Check partner structure
         partners = data["partners"]
         assert len(partners) >= 3  # illumina, oxford, pacbio
-        
+
         illumina_partner = next((p for p in partners if p["id"] == "illumina"), None)
         assert illumina_partner is not None
         assert illumina_partner["name"] == "Illumina Inc."
@@ -231,10 +232,12 @@ class TestEnhancedWebhooks:
             "sample_id": "processing_details_test",
             "run_id": "detailed_run_001",
             "file_urls": ["file1.fastq", "file2.fastq"],
-            "metadata": {"instrument": "NovaSeq X Plus"}
+            "metadata": {"instrument": "NovaSeq X Plus"},
         }
 
-        create_response = client.post("/webhooks/sequencing/illumina", json=webhook_data)
+        create_response = client.post(
+            "/webhooks/sequencing/illumina", json=webhook_data
+        )
         event_id = create_response.json()["event_id"]
 
         # Get the processed event
@@ -254,14 +257,12 @@ class TestEnhancedWebhooks:
         webhook_data = {
             "event_type": "qc_complete",
             "sample_id": "qc_details_test",
-            "qc_metrics": {
-                "passed": True,
-                "quality_score": 38.5,
-                "coverage": "32x"
-            }
+            "qc_metrics": {"passed": True, "quality_score": 38.5, "coverage": "32x"},
         }
 
-        create_response = client.post("/webhooks/sequencing/illumina", json=webhook_data)
+        create_response = client.post(
+            "/webhooks/sequencing/illumina", json=webhook_data
+        )
         event_id = create_response.json()["event_id"]
 
         # Get the processed event
@@ -283,8 +284,8 @@ class TestEnhancedWebhooks:
             "analysis_results": {
                 "variant_count": 2500,
                 "analysis_type": "targeted",
-                "reference": "GRCh38"
-            }
+                "reference": "GRCh38",
+            },
         }
 
         create_response = client.post("/webhooks/sequencing/oxford", json=webhook_data)
@@ -306,7 +307,7 @@ class TestEnhancedWebhooks:
         # Illumina supports sequencing_complete and qc_complete
         webhook_data = {
             "event_type": "analysis_complete",  # Not supported by Illumina
-            "sample_id": "validation_test"
+            "sample_id": "validation_test",
         }
 
         response = client.post("/webhooks/sequencing/illumina", json=webhook_data)
@@ -317,13 +318,15 @@ class TestEnhancedWebhooks:
         """Test enhanced signature validation"""
         webhook_data = {
             "event_type": "sequencing_complete",
-            "sample_id": "signature_test"
+            "sample_id": "signature_test",
         }
 
         # Test with wrong secret
         payload = json.dumps(webhook_data, sort_keys=True)
         wrong_secret = "wrong_secret"
-        signature = hmac.new(wrong_secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
+        signature = hmac.new(
+            wrong_secret.encode(), payload.encode(), hashlib.sha256
+        ).hexdigest()
 
         response = client.post(
             "/webhooks/sequencing/illumina",

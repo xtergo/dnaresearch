@@ -3,7 +3,6 @@
 import asyncio
 import hashlib
 import hmac
-import json
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -71,14 +70,20 @@ class EnhancedWebhookHandler:
                 id="oxford",
                 name="Oxford Nanopore Technologies",
                 secret="oxford_webhook_secret_key_2025",
-                supported_events=[EventType.SEQUENCING_COMPLETE, EventType.ANALYSIS_COMPLETE],
+                supported_events=[
+                    EventType.SEQUENCING_COMPLETE,
+                    EventType.ANALYSIS_COMPLETE,
+                ],
                 webhook_url="https://api.nanoporetech.com/webhooks/dna-research",
             ),
             "pacbio": Partner(
                 id="pacbio",
                 name="Pacific Biosciences",
                 secret="pacbio_webhook_secret_key_2025",
-                supported_events=[EventType.SEQUENCING_COMPLETE, EventType.ANALYSIS_COMPLETE],
+                supported_events=[
+                    EventType.SEQUENCING_COMPLETE,
+                    EventType.ANALYSIS_COMPLETE,
+                ],
                 webhook_url="https://api.pacb.com/webhooks/dna-research",
             ),
         }
@@ -120,10 +125,14 @@ class EnhancedWebhookHandler:
             raise ValueError(f"Unsupported event type: {event_data.get('event_type')}")
 
         if event_type not in partner.supported_events:
-            raise ValueError(f"Event type {event_type.value} not supported by {partner_id}")
+            raise ValueError(
+                f"Event type {event_type.value} not supported by {partner_id}"
+            )
 
         # Create event
-        event_id = f"{partner_id}_{uuid4().hex[:8]}_{int(datetime.utcnow().timestamp())}"
+        event_id = (
+            f"{partner_id}_{uuid4().hex[:8]}_{int(datetime.utcnow().timestamp())}"
+        )
         event = WebhookEvent(
             id=event_id,
             partner_id=partner_id,
@@ -186,15 +195,13 @@ class EnhancedWebhookHandler:
     async def _handle_sequencing_complete(self, event: WebhookEvent):
         """Handle sequencing completion with enhanced processing"""
         data = event.data
-        
+
         # Extract and validate required fields
         sample_id = data.get("sample_id")
         if not sample_id:
             raise ValueError("Missing required field: sample_id")
 
         file_urls = data.get("file_urls", [])
-        run_id = data.get("run_id")
-        metadata = data.get("metadata", {})
 
         # Process files
         processed_files = []
@@ -202,23 +209,25 @@ class EnhancedWebhookHandler:
             file_info = {
                 "url": url,
                 "processed_at": datetime.utcnow().isoformat() + "Z",
-                "status": "ready_for_analysis"
+                "status": "ready_for_analysis",
             }
             processed_files.append(file_info)
 
         # Update event data
-        event.data.update({
-            "processed_files": processed_files,
-            "file_count": len(file_urls),
-            "processing_completed_at": datetime.utcnow().isoformat() + "Z",
-            "next_step": "quality_control"
-        })
+        event.data.update(
+            {
+                "processed_files": processed_files,
+                "file_count": len(file_urls),
+                "processing_completed_at": datetime.utcnow().isoformat() + "Z",
+                "next_step": "quality_control",
+            }
+        )
 
     async def _handle_qc_complete(self, event: WebhookEvent):
         """Handle QC completion with enhanced metrics"""
         data = event.data
         qc_metrics = data.get("qc_metrics", {})
-        
+
         # Enhanced QC processing
         quality_score = qc_metrics.get("quality_score", 0)
         coverage = qc_metrics.get("coverage", "0x")
@@ -226,76 +235,85 @@ class EnhancedWebhookHandler:
 
         # Determine next steps based on QC results
         next_step = "variant_calling" if passed else "resequencing_required"
-        
-        event.data.update({
-            "qc_passed": passed,
-            "quality_assessment": {
-                "score": quality_score,
-                "coverage": coverage,
-                "recommendation": "proceed" if passed else "review_required"
-            },
-            "qc_processed_at": datetime.utcnow().isoformat() + "Z",
-            "next_step": next_step
-        })
+
+        event.data.update(
+            {
+                "qc_passed": passed,
+                "quality_assessment": {
+                    "score": quality_score,
+                    "coverage": coverage,
+                    "recommendation": "proceed" if passed else "review_required",
+                },
+                "qc_processed_at": datetime.utcnow().isoformat() + "Z",
+                "next_step": next_step,
+            }
+        )
 
     async def _handle_analysis_complete(self, event: WebhookEvent):
         """Handle analysis completion with enhanced results"""
         data = event.data
         results = data.get("analysis_results", {})
-        
+
         variant_count = results.get("variant_count", 0)
         analysis_type = results.get("analysis_type", "unknown")
         reference = results.get("reference", "unknown")
 
         # Enhanced analysis processing
-        event.data.update({
-            "variants_found": variant_count,
-            "analysis_summary": {
-                "type": analysis_type,
-                "reference_genome": reference,
-                "variant_count": variant_count,
-                "analysis_quality": "high" if variant_count > 1000 else "standard"
-            },
-            "analysis_processed_at": datetime.utcnow().isoformat() + "Z",
-            "next_step": "report_generation"
-        })
+        event.data.update(
+            {
+                "variants_found": variant_count,
+                "analysis_summary": {
+                    "type": analysis_type,
+                    "reference_genome": reference,
+                    "variant_count": variant_count,
+                    "analysis_quality": "high" if variant_count > 1000 else "standard",
+                },
+                "analysis_processed_at": datetime.utcnow().isoformat() + "Z",
+                "next_step": "report_generation",
+            }
+        )
 
     async def _handle_upload_complete(self, event: WebhookEvent):
         """Handle file upload completion"""
         data = event.data
         file_info = data.get("file_info", {})
-        
-        event.data.update({
-            "upload_verified": True,
-            "file_size_mb": file_info.get("size_mb", 0),
-            "checksum_verified": file_info.get("checksum_valid", False),
-            "upload_processed_at": datetime.utcnow().isoformat() + "Z",
-            "next_step": "file_processing"
-        })
+
+        event.data.update(
+            {
+                "upload_verified": True,
+                "file_size_mb": file_info.get("size_mb", 0),
+                "checksum_verified": file_info.get("checksum_valid", False),
+                "upload_processed_at": datetime.utcnow().isoformat() + "Z",
+                "next_step": "file_processing",
+            }
+        )
 
     async def _handle_error_notification(self, event: WebhookEvent):
         """Handle error notifications from partners"""
         data = event.data
         error_info = data.get("error", {})
-        
-        event.data.update({
-            "error_processed": True,
-            "error_severity": error_info.get("severity", "unknown"),
-            "error_code": error_info.get("code", "unknown"),
-            "error_processed_at": datetime.utcnow().isoformat() + "Z",
-            "requires_attention": error_info.get("severity") in ["high", "critical"]
-        })
+
+        event.data.update(
+            {
+                "error_processed": True,
+                "error_severity": error_info.get("severity", "unknown"),
+                "error_code": error_info.get("code", "unknown"),
+                "error_processed_at": datetime.utcnow().isoformat() + "Z",
+                "requires_attention": error_info.get("severity")
+                in ["high", "critical"],
+            }
+        )
 
     async def _schedule_retry(self, event: WebhookEvent):
         """Schedule event for retry with exponential backoff"""
         event.retry_count += 1
         event.status = WebhookStatus.RETRYING
-        
+
         # Exponential backoff: 2^retry_count minutes
-        delay_minutes = 2 ** event.retry_count
+        delay_minutes = 2**event.retry_count
         next_retry = datetime.utcnow() + timedelta(minutes=delay_minutes)
         event.next_retry = next_retry.isoformat() + "Z"
-        
+
         # In a real implementation, this would use a task scheduler
         await asyncio.sleep(delay_minutes * 60)
         await self.event_queue.put(event)
@@ -304,11 +322,12 @@ class EnhancedWebhookHandler:
         """Get webhook event by ID"""
         return self.events.get(event_id)
 
-    def get_partner_events(self, partner_id: str, limit: int = 50) -> List[WebhookEvent]:
+    def get_partner_events(
+        self, partner_id: str, limit: int = 50
+    ) -> List[WebhookEvent]:
         """Get events for a specific partner"""
         partner_events = [
-            event for event in self.events.values() 
-            if event.partner_id == partner_id
+            event for event in self.events.values() if event.partner_id == partner_id
         ]
         return sorted(partner_events, key=lambda x: x.timestamp, reverse=True)[:limit]
 
@@ -325,15 +344,21 @@ class EnhancedWebhookHandler:
         total_events = len(self.events)
         status_counts = {}
         partner_counts = {}
-        
+
         for event in self.events.values():
-            status_counts[event.status.value] = status_counts.get(event.status.value, 0) + 1
-            partner_counts[event.partner_id] = partner_counts.get(event.partner_id, 0) + 1
-        
+            status_counts[event.status.value] = (
+                status_counts.get(event.status.value, 0) + 1
+            )
+            partner_counts[event.partner_id] = (
+                partner_counts.get(event.partner_id, 0) + 1
+            )
+
         return {
             "total_events": total_events,
             "status_distribution": status_counts,
             "partner_distribution": partner_counts,
             "active_partners": len([p for p in self.partners.values() if p.active]),
-            "queue_size": self.event_queue.qsize() if hasattr(self.event_queue, 'qsize') else 0
+            "queue_size": (
+                self.event_queue.qsize() if hasattr(self.event_queue, "qsize") else 0
+            ),
         }

@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List
 
 from access_control import AccessAction, AccessControlManager, AccessRequest
+from enhanced_webhook_handler import EnhancedWebhookHandler
 from access_middleware import AccessControlMiddleware
 from anchor_diff import AnchorDiffStorage
 from cache_manager import CacheManager
@@ -52,7 +53,6 @@ anchor_diff_storage = AnchorDiffStorage()
 theory_manager.theory_creator = theory_creator
 
 # Enhanced webhook handler
-from enhanced_webhook_handler import EnhancedWebhookHandler
 enhanced_webhook_handler = EnhancedWebhookHandler()
 
 # Legacy webhook storage for backward compatibility
@@ -1236,7 +1236,7 @@ async def webhook_sequencing_partner(
     try:
         # Get signature for validation
         signature = request.headers.get("X-Signature") if request else None
-        
+
         # Validate signature if provided
         if signature:
             try:
@@ -1244,7 +1244,9 @@ async def webhook_sequencing_partner(
                 if not enhanced_webhook_handler.validate_signature(
                     payload.decode(), signature, partner
                 ):
-                    raise HTTPException(status_code=401, detail="Invalid webhook signature")
+                    raise HTTPException(
+                        status_code=401, detail="Invalid webhook signature"
+                    )
             except Exception:
                 # If signature validation fails, continue without validation
                 # In production, this should be more strict
@@ -1252,7 +1254,7 @@ async def webhook_sequencing_partner(
 
         # Process webhook with enhanced handler
         event = await enhanced_webhook_handler.process_webhook(partner, data, signature)
-        
+
         # Legacy storage for backward compatibility
         event_id = f"evt_{data.get('sample_id', 'unknown')}"
         webhook_events[event_id] = {
@@ -1263,7 +1265,7 @@ async def webhook_sequencing_partner(
             "timestamp": event.timestamp,
             "data": _process_webhook_data(data),
         }
-        
+
         if partner not in partner_events:
             partner_events[partner] = []
         partner_events[partner].append(webhook_events[event_id])
@@ -1276,11 +1278,13 @@ async def webhook_sequencing_partner(
             "timestamp": event.timestamp,
             "retry_count": event.retry_count,
         }
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Webhook processing failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Webhook processing failed: {str(e)}"
+        )
 
 
 @app.post("/genomic/store", response_model=GenomicDataResponse)
@@ -1451,12 +1455,12 @@ def get_webhook_event(event_id: str):
     Get details of a specific webhook event with enhanced information.
     """
     from enhanced_webhook_endpoints import get_enhanced_webhook_event
-    
+
     # Try enhanced handler first
     enhanced_event = get_enhanced_webhook_event(event_id, enhanced_webhook_handler)
     if enhanced_event:
         return enhanced_event
-    
+
     # Fallback to legacy storage
     if event_id not in webhook_events:
         raise HTTPException(status_code=404, detail="Webhook event not found")
@@ -1474,11 +1478,13 @@ def get_partner_events(
     Get all webhook events for a specific partner with enhanced information.
     """
     from enhanced_webhook_endpoints import get_enhanced_partner_events
-    
+
     try:
         return get_enhanced_partner_events(partner, limit, enhanced_webhook_handler)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get partner events: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get partner events: {str(e)}"
+        )
 
 
 @app.get("/gdpr/compliance")
@@ -3073,11 +3079,13 @@ def get_webhook_stats():
     Get comprehensive webhook processing statistics.
     """
     from enhanced_webhook_endpoints import get_webhook_statistics
-    
+
     try:
         return get_webhook_statistics(enhanced_webhook_handler)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get webhook stats: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get webhook stats: {str(e)}"
+        )
 
 
 @app.get("/webhooks/partners")
@@ -3088,18 +3096,20 @@ def list_webhook_partners():
     Get information about all configured webhook partners.
     """
     from enhanced_webhook_endpoints import list_webhook_partners
-    
+
     try:
         return list_webhook_partners(enhanced_webhook_handler)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list partners: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list partners: {str(e)}"
+        )
 
 
 @app.get("/webhooks/events")
 def list_webhook_events(
     status: str = Query(None, description="Filter by status"),
     partner: str = Query(None, description="Filter by partner"),
-    limit: int = Query(100, description="Maximum events to return")
+    limit: int = Query(100, description="Maximum events to return"),
 ):
     """
     List Webhook Events
@@ -3107,7 +3117,7 @@ def list_webhook_events(
     Get webhook events with optional filtering.
     """
     from enhanced_webhook_endpoints import list_webhook_events
-    
+
     try:
         return list_webhook_events(status, partner, limit, enhanced_webhook_handler)
     except HTTPException:

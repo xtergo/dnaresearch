@@ -1,14 +1,84 @@
-
 version: "3.9"
+
 services:
-  api:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.api
-    ports: ["8000:8000"]
   portal:
     build:
       context: ..
       dockerfile: docker/Dockerfile.portal
-    ports: ["8080:80"]
-    depends_on: [api]
+    ports:
+      - "8080:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - NODE_ENV=development
+    depends_on:
+      - api
+    networks:
+      - dnaresearch
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://dev_user:dev_password@postgres:5432/dnaresearch_dev
+      - REDIS_URL=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
+      - API_SECRET_KEY=dev-secret-key-change-in-production
+      - DEBUG=true
+      - PYTHONPATH=/app
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    networks:
+      - dnaresearch
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=dev_user
+      - POSTGRES_PASSWORD=dev_password
+      - POSTGRES_DB=dnaresearch_dev
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./init-scripts/init-dev-db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - dnaresearch
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_dev_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - dnaresearch
+
+  minio:
+    image: minio/minio:latest
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    volumes:
+      - minio_dev_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    networks:
+      - dnaresearch
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+  minio_dev_data:
+
+networks:
+  dnaresearch:
+    driver: bridge

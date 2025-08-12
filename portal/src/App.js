@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
+import { theoryService } from './services/api';
 import GeneSearch from './components/GeneSearch';
 import VariantInterpretation from './components/VariantInterpretation';
 import TheoryManagement from './components/TheoryManagement';
@@ -101,7 +102,7 @@ function App() {
         return;
       }
 
-      await axios.post('/theories', theory);
+      await theoryService.createTheory(theory);
       setSuccessMessage(`Theory "${theory.id}" created successfully!`);
       
       // Reset form
@@ -121,14 +122,7 @@ function App() {
   };
 
   const tabStyle = (isActive) => ({
-    padding: '10px 20px',
-    margin: '0 5px',
-    backgroundColor: isActive ? '#007bff' : '#f8f9fa',
-    color: isActive ? 'white' : '#333',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '16px'
+    className: isActive ? 'active' : ''
   });
 
   return (
@@ -139,54 +133,74 @@ function App() {
           <p>Genomic analysis and theory management</p>
           <nav style={{ marginTop: '20px' }}>
             <button
-              style={tabStyle(activeTab === 'search')}
+              className={activeTab === 'search' ? 'active' : ''}
               onClick={() => setActiveTab('search')}
             >
-              Gene Search
+              🔍 Gene Search
             </button>
             <button
-              style={tabStyle(activeTab === 'interpret')}
+              className={activeTab === 'interpret' ? 'active' : ''}
               onClick={() => setActiveTab('interpret')}
             >
-              Variant Interpretation
+              🧬 Variant Interpretation
             </button>
             <button
-              style={tabStyle(activeTab === 'theories')}
+              className={activeTab === 'theories' ? 'active' : ''}
               onClick={() => setActiveTab('theories')}
             >
-              Theory Management
+              📊 Theory Management
             </button>
             <button
-              style={tabStyle(activeTab === 'upload')}
+              className={activeTab === 'upload' ? 'active' : ''}
               onClick={() => setActiveTab('upload')}
             >
-              File Upload
+              📁 File Upload
             </button>
             <button
-              style={tabStyle(activeTab === 'theory')}
+              className={activeTab === 'theory' ? 'active' : ''}
               onClick={() => setActiveTab('theory')}
             >
-              Theory Creation
+              ⚗️ Theory Creation
             </button>
           </nav>
         </div>
       </div>
       
       <div className="container">
-        {activeTab === 'search' && <GeneSearch />}
-        {activeTab === 'interpret' && <VariantInterpretation />}
-        {activeTab === 'theories' && <TheoryManagement />}
-        {activeTab === 'upload' && <FileUpload />}
+        {activeTab === 'search' && (
+          <div className="fade-in">
+            <GeneSearch />
+          </div>
+        )}
+        {activeTab === 'interpret' && (
+          <div className="fade-in">
+            <VariantInterpretation />
+          </div>
+        )}
+        {activeTab === 'theories' && (
+          <div className="fade-in">
+            <TheoryManagement />
+          </div>
+        )}
+        {activeTab === 'upload' && (
+          <div className="fade-in">
+            <FileUpload />
+          </div>
+        )}
         
         {activeTab === 'theory' && (
-          <div>
+          <div className="card fade-in">
+            <h2>Theory Creation</h2>
             {successMessage && (
               <div className="success-message">{successMessage}</div>
             )}
+            {validationError && (
+              <div className="error-message">{validationError}</div>
+            )}
         
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-          <div>
-            <h2>Theory Form</h2>
+        <div className="grid grid-2">
+          <div className="card">
+            <h3>Theory Form</h3>
             
             <div className="form-group">
               <label>Theory ID</label>
@@ -253,8 +267,8 @@ function App() {
             </div>
           </div>
           
-          <div>
-            <h2>JSON Editor</h2>
+          <div className="card">
+            <h3>JSON Editor</h3>
             <div className="editor-container">
               <Editor
                 height="400px"
@@ -271,19 +285,22 @@ function App() {
           </div>
         </div>
         
-        {validationError && (
-          <div className="validation-error" style={{ marginTop: '20px' }}>
-            {validationError}
-          </div>
-        )}
+
         
-        <div style={{ marginTop: '30px' }}>
+        <div className="mt-4">
           <button 
             className="btn btn-primary" 
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Creating...' : 'Create Theory'}
+            {isSubmitting ? (
+              <span className="loading">
+                <span className="spinner"></span>
+                Creating...
+              </span>
+            ) : (
+              'Create Theory'
+            )}
           </button>
           <button 
             className="btn btn-secondary"

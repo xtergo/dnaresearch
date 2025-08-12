@@ -4,11 +4,29 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Add response interceptor for better error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      // Server responded with error status
+      const message = error.response.data?.detail || error.response.data?.message || 'Server error occurred';
+      throw new Error(message);
+    } else if (error.request) {
+      // Request was made but no response received
+      throw new Error('Unable to connect to server. Please check your connection.');
+    } else {
+      // Something else happened
+      throw new Error('An unexpected error occurred');
+    }
+  }
+);
 
 export const geneService = {
   searchGenes: async (query, limit = 10) => {
@@ -54,7 +72,9 @@ export const theoryService = {
   },
 
   createTheory: async (theoryData) => {
-    const response = await api.post('/theories', theoryData);
+    // Handle both direct theory data and wrapped format
+    const payload = theoryData.theory_data ? theoryData : { theory_data: theoryData, author: theoryData.author || 'anonymous' };
+    const response = await api.post('/theories', payload);
     return response.data;
   },
 

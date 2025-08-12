@@ -47,106 +47,79 @@ const VariantInterpretation = () => {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h2>Variant Interpretation</h2>
+    <div className="card">
+      <h2>🧬 Variant Interpretation</h2>
+      <p className="text-muted mb-3">Analyze genetic variants with clinical significance assessment</p>
       
-      <form onSubmit={handleInterpret} style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'grid', gap: '15px', marginBottom: '20px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Gene Symbol:
-            </label>
+      <form onSubmit={handleInterpret} className="mb-4">
+        <div className="grid grid-2">
+          <div className="form-group">
+            <label htmlFor="gene-symbol">Gene Symbol *</label>
             <input
+              id="gene-symbol"
               type="text"
               value={gene}
               onChange={(e) => setGene(e.target.value)}
-              placeholder="e.g., BRCA1"
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '16px'
-              }}
+              placeholder="e.g., BRCA1, TP53, CFTR"
+              required
             />
           </div>
           
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Variant (HGVS notation):
-            </label>
+          <div className="form-group">
+            <label htmlFor="variant-notation">Variant (HGVS notation) *</label>
             <input
+              id="variant-notation"
               type="text"
               value={variant}
               onChange={(e) => setVariant(e.target.value)}
-              placeholder="e.g., c.185delAG"
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '16px'
-              }}
+              placeholder="e.g., c.185delAG, p.Arg273His"
+              required
             />
           </div>
         </div>
         
         <button
           type="submit"
-          disabled={loading}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '16px',
-            cursor: loading ? 'not-allowed' : 'pointer'
-          }}
+          disabled={loading || !gene.trim() || !variant.trim()}
+          className="btn btn-primary"
         >
-          {loading ? 'Interpreting...' : 'Interpret Variant'}
+          {loading ? (
+            <span className="loading">
+              <span className="spinner"></span>
+              Interpreting...
+            </span>
+          ) : (
+            '🔬 Interpret Variant'
+          )}
         </button>
       </form>
 
       {error && (
-        <div style={{
-          padding: '15px',
-          backgroundColor: '#f8d7da',
-          color: '#721c24',
-          border: '1px solid #f5c6cb',
-          borderRadius: '4px',
-          marginBottom: '20px'
-        }}>
-          {error}
+        <div className="error-message">
+          <strong>Interpretation Error:</strong> {error}
         </div>
       )}
 
       {result && (
-        <div style={{
-          padding: '20px',
-          border: '2px solid #007bff',
-          borderRadius: '8px',
-          backgroundColor: '#f8f9fa'
-        }}>
-          <h3>Interpretation Results</h3>
+        <div className="card" style={{ border: '2px solid #667eea', background: 'linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%)' }}>
+          <h3>📈 Interpretation Results</h3>
           
-          <div style={{ display: 'grid', gap: '15px' }}>
-            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <div style={{ display: 'grid', gap: '1.5rem' }}>
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'center' }}>
               <div>
-                <strong>Gene:</strong> {result.gene}
+                <strong>Gene:</strong> <code>{result.gene}</code>
               </div>
               <div>
-                <strong>Variant:</strong> {result.variant}
+                <strong>Variant:</strong> <code>{result.variant}</code>
               </div>
               <div>
                 <span
+                  className="badge"
                   style={{
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    color: 'white',
                     backgroundColor: getImpactColor(result.impact),
-                    fontSize: '14px',
-                    fontWeight: 'bold'
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    padding: '0.5rem 1rem'
                   }}
                 >
                   {result.impact?.toUpperCase()}
@@ -154,12 +127,12 @@ const VariantInterpretation = () => {
               </div>
               <div>
                 <span
+                  className="badge"
                   style={{
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    color: 'white',
                     backgroundColor: getConfidenceColor(result.confidence),
-                    fontSize: '14px'
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    padding: '0.5rem 1rem'
                   }}
                 >
                   {result.confidence?.toUpperCase()} CONFIDENCE
@@ -167,40 +140,32 @@ const VariantInterpretation = () => {
               </div>
             </div>
 
-            <div style={{
-              padding: '15px',
-              backgroundColor: '#e7f3ff',
-              borderRadius: '4px',
-              border: '1px solid #b3d9ff'
-            }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#0056b3' }}>
-                Parent-Friendly Explanation
+            <div className="card" style={{ background: 'linear-gradient(135deg, #e7f3ff 0%, #d1ecf1 100%)', border: '1px solid #b3d9ff' }}>
+              <h4 style={{ margin: '0 0 1rem 0', color: '#0056b3' }}>
+                👨‍👩‍👧‍👦 Parent-Friendly Explanation
               </h4>
-              <p style={{ margin: 0, lineHeight: '1.5' }}>
+              <p style={{ margin: 0, lineHeight: '1.6', fontSize: '1.05rem' }}>
                 {result.parent_explanation}
               </p>
             </div>
 
-            <div style={{
-              padding: '15px',
-              backgroundColor: '#f0f0f0',
-              borderRadius: '4px',
-              border: '1px solid #ccc'
-            }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#333' }}>
-                Technical Explanation
+            <div className="card" style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', border: '1px solid #dee2e6' }}>
+              <h4 style={{ margin: '0 0 1rem 0', color: '#495057' }}>
+                🔬 Technical Explanation
               </h4>
-              <p style={{ margin: 0, lineHeight: '1.5' }}>
+              <p style={{ margin: 0, lineHeight: '1.6' }}>
                 {result.technical_explanation}
               </p>
             </div>
 
             {result.recommendations && result.recommendations.length > 0 && (
-              <div>
-                <h4>Recommendations:</h4>
-                <ul style={{ margin: 0, paddingLeft: '20px' }}>
+              <div className="card" style={{ background: 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)', border: '1px solid #ffeaa7' }}>
+                <h4 style={{ margin: '0 0 1rem 0', color: '#856404' }}>
+                  📝 Recommendations:
+                </h4>
+                <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
                   {result.recommendations.map((rec, index) => (
-                    <li key={index} style={{ marginBottom: '5px' }}>{rec}</li>
+                    <li key={index} style={{ marginBottom: '0.5rem', lineHeight: '1.5' }}>{rec}</li>
                   ))}
                 </ul>
               </div>
@@ -208,18 +173,21 @@ const VariantInterpretation = () => {
 
             {result.evidence_sources && result.evidence_sources.length > 0 && (
               <div>
-                <h4>Evidence Sources:</h4>
-                <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                <h4 style={{ color: '#495057' }}>
+                  📚 Evidence Sources:
+                </h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
                   {result.evidence_sources.map((source, index) => (
-                    <li key={index} style={{ marginBottom: '5px' }}>{source}</li>
+                    <span key={index} className="badge badge-info">{source}</span>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
 
             {result.population_frequency && (
               <div>
-                <strong>Population Frequency:</strong> {result.population_frequency}
+                <strong>🌍 Population Frequency:</strong> 
+                <span className="badge badge-secondary ml-2">{result.population_frequency}</span>
               </div>
             )}
           </div>

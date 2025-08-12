@@ -1,17 +1,23 @@
 version: '3.8'
 
 services:
-  nginx:
+  portal:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.nginx
+      dockerfile: docker/Dockerfile.portal
+      target: production
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - NODE_ENV=production
     depends_on:
       - api
-    volumes:
-      - ./nginx/ssl:/etc/nginx/ssl
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - dnaresearch_prod
 
@@ -20,25 +26,21 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.api
       target: production
+    ports:
+      - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://prod_user:${POSTGRES_PASSWORD}@postgres:5432/dnaresearch_prod
+      - DATABASE_URL=postgresql://prod_user:${POSTGRES_PASSWORD:-dnaresearch123}@postgres:5432/dnaresearch_prod
       - REDIS_URL=redis://redis:6379/0
       - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
-      - API_SECRET_KEY=${API_SECRET_KEY}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin123}
+      - API_SECRET_KEY=${API_SECRET_KEY:-your-secret-key-change-in-production}
       - DEBUG=false
+      - PYTHONPATH=/app
     depends_on:
       - postgres
       - redis
       - minio
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -51,17 +53,13 @@ services:
     image: postgres:15-alpine
     environment:
       - POSTGRES_USER=prod_user
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dnaresearch123}
       - POSTGRES_DB=dnaresearch_prod
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
-      - ./init-scripts/init-prod-db.sql:/docker-entrypoint-initdb.d/init.sql
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
+      - ./init-scripts/init-dev-db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U prod_user -d dnaresearch_prod"]
       interval: 30s
@@ -74,12 +72,8 @@ services:
     image: redis:7-alpine
     volumes:
       - redis_prod_data:/data
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -91,17 +85,14 @@ services:
   minio:
     image: minio/minio:latest
     environment:
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin123}
     volumes:
       - minio_prod_data:/data
-    command: server /data
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s

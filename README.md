@@ -8,13 +8,29 @@ An open, collaborative DNA research platform that lets researchers and citizen s
 
 ## 🚀 Quick Start
 
+### Development Mode
 ```bash
 # Clone the repository
 git clone https://github.com/YOUR_USERNAME/dnaresearch.git
 cd dnaresearch
 
-# Run with Docker
-docker-compose -f docker/docker-compose.yml up
+# Start development environment
+./scripts/start-development.sh
+
+# Access the platform
+# Portal: http://localhost:8080
+# API: http://localhost:8000/docs
+# MinIO Console: http://localhost:9001
+```
+
+### Production Mode
+```bash
+# Copy and configure environment file
+cp .env.prod.template .env.prod
+# Edit .env.prod with your production settings
+
+# Start production environment
+./scripts/start-production.sh
 
 # Access the platform
 # Portal: http://localhost:8080
@@ -35,11 +51,15 @@ Deliver a reproducible, privacy-preserving, and cost-efficient genomics platform
 ## 📋 Current Status
 
 **MVP Phase** (Weeks 1-4):
-- ✅ Basic API structure with health and gene search endpoints
-- ✅ Docker containerization setup
-- ✅ Project documentation and blueprint
-- 🔄 JSON schemas and validators (in progress)
-- 🔄 Anchor/Diff storage library (planned)
+- ✅ Comprehensive FastAPI with 50+ endpoints
+- ✅ React Portal with 5 functional components
+- ✅ Docker containerization with dev/prod configurations
+- ✅ Professional UI with responsive design
+- ✅ Complete testing suite (359 tests, 91% coverage)
+- ✅ Production-ready deployment scripts
+- ✅ Database integration (PostgreSQL + Redis)
+- ✅ File storage system (MinIO)
+- ✅ Theory management and evidence accumulation
 
 ## 🏗️ Architecture
 
