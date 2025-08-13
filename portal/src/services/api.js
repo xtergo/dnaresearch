@@ -181,4 +181,57 @@ export const fileService = {
   }
 };
 
+export const consentService = {
+  listForms: async () => {
+    const response = await api.get('/consent/forms');
+    return response.data;
+  },
+
+  getForm: async (formId) => {
+    const response = await api.get(`/consent/forms/${formId}`);
+    return response.data;
+  },
+
+  captureConsent: async (formId, userId, userData, digitalSignature) => {
+    const response = await api.post('/consent/capture', {
+      form_id: formId,
+      user_id: userId,
+      user_data: userData,
+      digital_signature: digitalSignature
+    });
+    return response.data;
+  },
+
+  checkConsent: async (userId, consentType) => {
+    const response = await api.get(`/consent/check/${userId}`, {
+      params: { consent_type: consentType }
+    });
+    return response.data;
+  },
+
+  withdrawConsent: async (userId, consentType, reason = 'user_request') => {
+    const response = await api.post('/consent/withdraw', {
+      user_id: userId,
+      consent_type: consentType,
+      reason
+    });
+    return response.data;
+  },
+
+  getUserConsents: async (userId) => {
+    const response = await api.get(`/consent/users/${userId}`);
+    return response.data;
+  },
+
+  getAuditTrail: async (userId) => {
+    const response = await api.get(`/consent/audit/${userId}`);
+    return response.data;
+  },
+
+  getStats: async () => {
+    const response = await api.get('/consent/stats');
+    return response.data;
+  }
+};
+
 export default api;

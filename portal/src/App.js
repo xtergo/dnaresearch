@@ -8,6 +8,7 @@ import VariantInterpretation from './components/VariantInterpretation';
 import TheoryManagement from './components/TheoryManagement';
 import FileUpload from './components/FileUpload';
 import Login from './components/Login';
+import ConsentManagement from './components/ConsentManagement';
 
 const THEORY_TEMPLATE = {
   id: "",
@@ -212,6 +213,12 @@ function App() {
             >
               ⚗️ Theory Creation
             </button>
+            <button
+              className={activeTab === 'consent' ? 'active' : ''}
+              onClick={() => setActiveTab('consent')}
+            >
+              🔒 Consent Management
+            </button>
           </nav>
         </div>
       </div>
@@ -235,6 +242,12 @@ function App() {
         {activeTab === 'upload' && (
           <div className="fade-in">
             <FileUpload />
+          </div>
+        )}
+        
+        {activeTab === 'consent' && (
+          <div className="fade-in">
+            <ConsentManagement userId={user?.username || 'user_001'} />
           </div>
         )}
         

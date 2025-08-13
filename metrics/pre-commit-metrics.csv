@@ -1064,3 +1064,6 @@ test_performance.py:246
 67
 2025-08-13 07:04:45,security_scan_duration_sec,0
 2025-08-13 07:04:46,total_validation_duration_sec,99
+2025-08-13 07:21:25,python_lint_duration_sec,1
+2025-08-13 07:21:26,schema_validation_duration_sec,1
+2025-08-13 07:21:26,migration_validation_duration_sec,0
