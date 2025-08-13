@@ -33,8 +33,8 @@ else
     cd ..
 fi
 
-# Store coverage metrics
-if [[ "$STORE_METRICS" == "true" ]]; then
+# Store coverage metrics (skip during pre-commit to avoid staging conflicts)
+if [[ "$STORE_METRICS" == "true" ]] && [[ "${PRE_COMMIT:-}" != "1" ]]; then
     mkdir -p metrics
     echo "$(date '+%Y-%m-%d %H:%M:%S'),coverage_percent,$COVERAGE_PERCENT" >> metrics/coverage-metrics.csv
 fi

@@ -51,7 +51,8 @@ def test_protected_endpoint_without_auth():
     response = client.post(
         "/theories", json={"id": "test-theory", "version": "1.0.0", "scope": "autism"}
     )
-    assert response.status_code in [401, 403]  # Either unauthorized or forbidden
+    # Now allows anonymous access but may fail validation
+    assert response.status_code in [200, 400]  # Success or validation error
 
 
 def test_protected_endpoint_with_auth():

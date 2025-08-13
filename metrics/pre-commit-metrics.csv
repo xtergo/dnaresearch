@@ -918,3 +918,149 @@ test_performance.py:246
 2025-08-12 13:14:44,schema_validation_duration_sec,1
 2025-08-12 13:14:44,migration_validation_duration_sec,0
 2025-08-12 13:15:46,unit_test_duration_sec,62
+2025-08-12 16:36:45,python_lint_duration_sec,2
+2025-08-12 16:36:46,schema_validation_duration_sec,1
+2025-08-12 16:36:46,migration_validation_duration_sec,0
+2025-08-12 17:01:47,python_lint_duration_sec,1
+2025-08-12 17:01:47,schema_validation_duration_sec,0
+2025-08-12 17:01:47,migration_validation_duration_sec,0
+2025-08-12 17:04:10,python_lint_duration_sec,1
+2025-08-12 17:04:10,schema_validation_duration_sec,0
+2025-08-12 17:04:11,migration_validation_duration_sec,1
+2025-08-12 17:32:20,python_lint_duration_sec,2
+2025-08-12 17:32:20,schema_validation_duration_sec,0
+2025-08-12 17:32:20,migration_validation_duration_sec,0
+2025-08-12 17:33:24,python_lint_duration_sec,2
+2025-08-12 17:33:25,schema_validation_duration_sec,1
+2025-08-12 17:33:25,migration_validation_duration_sec,0
+2025-08-13 06:43:01,python_lint_duration_sec,2
+2025-08-13 06:43:01,schema_validation_duration_sec,0
+2025-08-13 06:43:01,migration_validation_duration_sec,0
+2025-08-13 06:54:53,python_lint_duration_sec,1
+2025-08-13 06:54:54,schema_validation_duration_sec,1
+2025-08-13 06:54:54,migration_validation_duration_sec,0
+2025-08-13 06:55:57,unit_test_duration_sec,63
+2025-08-13 06:57:20,python_lint_duration_sec,2
+2025-08-13 06:57:20,schema_validation_duration_sec,0
+2025-08-13 06:57:20,migration_validation_duration_sec,0
+2025-08-13 06:58:24,unit_test_duration_sec,64
+2025-08-13 06:58:54,coverage_analysis_duration_sec,30
+2025-08-13 06:58:54,test_coverage_percent,============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0
+rootdir: /home/echrjan/repos/dnaresearch/api
+plugins: anyio-4.9.0, asyncio-1.0.0
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 406 items
+
+test_access_control.py ..........                                        [  2%]
+test_access_middleware.py ........                                       [  4%]
+test_anchor_diff.py .....                                                [  5%]
+test_auth.py ........                                                    [  7%]
+test_blockchain_ledger.py .....................                          [ 12%]
+test_caching.py ............                                             [ 15%]
+test_collaboration.py ...............                                    [ 19%]
+test_consent_api.py .................                                    [ 23%]
+test_consent_management.py ...................                           [ 28%]
+test_docs.py ...                                                         [ 29%]
+test_enhanced_webhooks.py ..................                             [ 33%]
+test_evidence_accumulation.py ........                                   [ 35%]
+test_evidence_api.py ..............                                      [ 38%]
+test_evidence_validation.py ......                                       [ 40%]
+test_file_upload.py ...........................                          [ 47%]
+test_gdpr_api_enhanced.py .............                                  [ 50%]
+test_gdpr_compliance.py ..........                                       [ 52%]
+test_gdpr_enhanced.py .............                                      [ 55%]
+test_gene_search.py .............                                        [ 59%]
+test_health.py ...                                                       [ 59%]
+test_performance.py ...........                                          [ 62%]
+test_researcher_reports.py ............................                  [ 69%]
+test_security_audit.py ...........                                       [ 72%]
+test_theory_creation.py ................                                 [ 76%]
+test_theory_execution.py ........                                        [ 78%]
+test_theory_forking.py .........                                         [ 80%]
+test_theory_listing.py ...................                               [ 84%]
+test_theory_management.py .....................                          [ 90%]
+test_theory_validation.py ....                                           [ 91%]
+test_variant_interpretation.py .......................                   [ 96%]
+test_webhooks.py .............                                           [100%]
+
+=============================== warnings summary ===============================
+../../../.local/lib/python3.10/site-packages/starlette/formparsers.py:12
+  /home/echrjan/.local/lib/python3.10/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+test_performance.py:246
+  /home/echrjan/repos/dnaresearch/api/test_performance.py:246: PytestUnknownMarkWarning: Unknown pytest.mark.performance - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.performance
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 406 passed, 2 warnings in 28.62s =======================
+📊 Coverage Summary:
+   Total Coverage: 67%
+   Status: ⚠️  MODERATE (60-79%)
+
+67
+2025-08-13 06:58:54,security_scan_duration_sec,0
+2025-08-13 06:58:57,total_validation_duration_sec,99
+2025-08-13 07:03:08,python_lint_duration_sec,1
+2025-08-13 07:03:09,schema_validation_duration_sec,1
+2025-08-13 07:03:09,migration_validation_duration_sec,0
+2025-08-13 07:04:14,unit_test_duration_sec,65
+2025-08-13 07:04:45,coverage_analysis_duration_sec,31
+2025-08-13 07:04:45,test_coverage_percent,============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0
+rootdir: /home/echrjan/repos/dnaresearch/api
+plugins: anyio-4.9.0, asyncio-1.0.0
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 406 items
+
+test_access_control.py ..........                                        [  2%]
+test_access_middleware.py ........                                       [  4%]
+test_anchor_diff.py .....                                                [  5%]
+test_auth.py ........                                                    [  7%]
+test_blockchain_ledger.py .....................                          [ 12%]
+test_caching.py ............                                             [ 15%]
+test_collaboration.py ...............                                    [ 19%]
+test_consent_api.py .................                                    [ 23%]
+test_consent_management.py ...................                           [ 28%]
+test_docs.py ...                                                         [ 29%]
+test_enhanced_webhooks.py ..................                             [ 33%]
+test_evidence_accumulation.py ........                                   [ 35%]
+test_evidence_api.py ..............                                      [ 38%]
+test_evidence_validation.py ......                                       [ 40%]
+test_file_upload.py ...........................                          [ 47%]
+test_gdpr_api_enhanced.py .............                                  [ 50%]
+test_gdpr_compliance.py ..........                                       [ 52%]
+test_gdpr_enhanced.py .............                                      [ 55%]
+test_gene_search.py .............                                        [ 59%]
+test_health.py ...                                                       [ 59%]
+test_performance.py ...........                                          [ 62%]
+test_researcher_reports.py ............................                  [ 69%]
+test_security_audit.py ...........                                       [ 72%]
+test_theory_creation.py ................                                 [ 76%]
+test_theory_execution.py ........                                        [ 78%]
+test_theory_forking.py .........                                         [ 80%]
+test_theory_listing.py ...................                               [ 84%]
+test_theory_management.py .....................                          [ 90%]
+test_theory_validation.py ....                                           [ 91%]
+test_variant_interpretation.py .......................                   [ 96%]
+test_webhooks.py .............                                           [100%]
+
+=============================== warnings summary ===============================
+../../../.local/lib/python3.10/site-packages/starlette/formparsers.py:12
+  /home/echrjan/.local/lib/python3.10/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+test_performance.py:246
+  /home/echrjan/repos/dnaresearch/api/test_performance.py:246: PytestUnknownMarkWarning: Unknown pytest.mark.performance - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.performance
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 406 passed, 2 warnings in 28.63s =======================
+📊 Coverage Summary:
+   Total Coverage: 67%
+   Status: ⚠️  MODERATE (60-79%)
+
+67
+2025-08-13 07:04:45,security_scan_duration_sec,0
+2025-08-13 07:04:46,total_validation_duration_sec,99

@@ -25,13 +25,13 @@ log() {
     fi
 }
 
-# Metrics collection
+# Metrics collection (skip during pre-commit to avoid staging conflicts)
 collect_metric() {
     local metric_name="$1"
     local metric_value="$2"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     
-    if [[ "$STORE_METRICS" == "true" ]]; then
+    if [[ "$STORE_METRICS" == "true" ]] && [[ "${PRE_COMMIT:-}" != "1" ]]; then
         echo "$timestamp,$metric_name,$metric_value" >> "$METRICS_DIR/pre-commit-metrics.csv"
     fi
 }

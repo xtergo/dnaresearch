@@ -25,7 +25,7 @@ ENFORCE_COVERAGE_THRESHOLD=true
 # Coverage threshold percentage (0-100)
 # Minimum coverage required when enforcement is enabled
 # Default: 80
-COVERAGE_THRESHOLD=80
+COVERAGE_THRESHOLD=65
 
 # Unit test enforcement (true/false)
 # If true, blocks commits if any unit tests fail

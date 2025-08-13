@@ -22,8 +22,25 @@ class AccessControlMiddleware(BaseHTTPMiddleware):
             "/genomic/materialize/{individual_id}/{anchor_id}": AccessAction.READ_GENOMIC_DATA,
         }
 
+        # Endpoints that should be publicly accessible (no access control)
+        self.public_endpoints = {
+            "/theories",
+            "/theories/templates",
+            "/theories/stats",
+            "/health",
+            "/genes/search",
+            "/cache",
+            "/webhooks",
+        }
+
+        # Note: /theories/{theory_id}/execute is NOT public - it requires access control
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process request through access control"""
+
+        # Check if this is a public endpoint
+        if self._is_public_endpoint(request.url.path):
+            return await call_next(request)
 
         # Check if this endpoint requires access control
         action = self._get_required_action(request.url.path, request.method)
@@ -93,6 +110,24 @@ class AccessControlMiddleware(BaseHTTPMiddleware):
                 return False
 
         return True
+
+    def _is_public_endpoint(self, path: str) -> bool:
+        """Check if endpoint is public (no access control required)"""
+        for public_path in self.public_endpoints:
+            # Exact match for /theories (list theories)
+            if public_path == "/theories" and path == "/theories":
+                return True
+            # Prefix match for other paths, but not for /theories to avoid matching execution
+            elif public_path != "/theories" and path.startswith(public_path):
+                return True
+            # Special handling for theories sub-paths
+            elif public_path == "/theories" and (
+                path.startswith("/theories/templates")
+                or path.startswith("/theories/stats")
+                or path == "/theories"
+            ):
+                return True
+        return False
 
     def _extract_user_id(self, request: Request) -> str:
         """Extract user ID from request"""

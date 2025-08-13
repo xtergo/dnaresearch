@@ -23,7 +23,7 @@ class TestAccessControlMiddleware:
             return {"gene": gene, "result": "interpreted"}
 
         @self.app.post("/theories/{theory_id}/execute")
-        def execute_theory(theory_id: str):
+        def execute_theory(theory_id: str, request_body: dict = None):
             return {"theory_id": theory_id, "result": "executed"}
 
         @self.app.get("/public/endpoint")
@@ -133,6 +133,7 @@ class TestAccessControlMiddleware:
         response = self.client.post(
             "/theories/autism-theory-1/execute",
             headers={"X-User-ID": "user_theory_test"},
+            json={"test": "data"},
         )
 
         assert response.status_code == 200
